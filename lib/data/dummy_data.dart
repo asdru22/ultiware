@@ -7,7 +7,7 @@ final List<ClothingItem> dummyGear = [
     type: ClothingType.jersey,
     frontImage: '',
     size: ClothingSize.m,
-    brand: ClothingBrand.a,
+    brand: ClothingBrand.be,
     productionYear: 2023,
   ),
   ClothingItem(
@@ -16,7 +16,7 @@ final List<ClothingItem> dummyGear = [
     type: ClothingType.jersey,
     frontImage: '',
     size: ClothingSize.l,
-    brand: ClothingBrand.a,
+    brand: ClothingBrand.vc,
     productionYear: 2022,
   ),
   ClothingItem(
@@ -24,7 +24,7 @@ final List<ClothingItem> dummyGear = [
     name: 'Layout Gloves',
     // type: 'Accessories', // No enum for accessories yet, treating as null or generic
     frontImage: '',
-    brand: ClothingBrand.c,
+    brand: ClothingBrand.gaia,
   ),
   ClothingItem(
     id: '4', 
@@ -46,6 +46,6 @@ final List<ClothingItem> dummyGear = [
     name: 'Disc', 
     // type: 'Gear', 
     frontImage: '',
-    brand: ClothingBrand.d,
+    brand: ClothingBrand.boon,
   ),
 ];

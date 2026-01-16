@@ -12,7 +12,6 @@ class GearGrid extends StatefulWidget {
 }
 
 class _GearGridState extends State<GearGrid> {
-  // Zoom state
   double _crossAxisCount = 2.0;
   double _scaleStartCrossAxisCount = 2.0;
 
@@ -34,7 +33,6 @@ class _GearGridState extends State<GearGrid> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure crossAxisCount is valid if orientation changes
     final orientation = MediaQuery.of(context).orientation;
     final minCols = orientation == Orientation.landscape ? 2.0 : 1.0;
     if (_crossAxisCount < minCols) {
@@ -63,6 +61,11 @@ class _GearGridState extends State<GearGrid> {
   Widget _buildGearCard(ClothingItem item) {
     final bool hideText = _crossAxisCount.round() >= 3;
 
+    final bool hasChips =
+        item.size != null || item.countryOfOrigin != null || item.isFavorite;
+
+    final bool showFooter = !hideText && hasChips;
+
     return Card(
       elevation: 1,
       clipBehavior: Clip.antiAlias,
@@ -71,29 +74,36 @@ class _GearGridState extends State<GearGrid> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            flex: hideText ? 1 : 3,
             child: Container(
               color: Colors.grey.withValues(alpha: 0.2),
               child: item.frontImage.isNotEmpty
                   ? (item.frontImage.startsWith('http')
-                      ? Image.network(
-                          item.frontImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                             return Center(
-                               child: Icon(Icons.checkroom, size: 48, color: Colors.white70),
-                             );
-                          },
-                        )
-                      : Image.file(
-                          File(item.frontImage),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                             return Center(
-                               child: Icon(Icons.checkroom, size: 48, color: Colors.white70),
-                             );
-                          },
-                        ))
+                        ? Image.network(
+                            item.frontImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Icon(
+                                  Icons.checkroom,
+                                  size: 48,
+                                  color: Colors.white70,
+                                ),
+                              );
+                            },
+                          )
+                        : Image.file(
+                            File(item.frontImage),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Icon(
+                                  Icons.checkroom,
+                                  size: 48,
+                                  color: Colors.white70,
+                                ),
+                              );
+                            },
+                          ))
                   : Center(
                       child: Icon(
                         Icons.checkroom,
@@ -103,54 +113,53 @@ class _GearGridState extends State<GearGrid> {
                     ),
             ),
           ),
-          if (!hideText)
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Wrap(
-                  spacing: 4.0,
-                  runSpacing: 4.0,
-                  children: [
-                    if (item.size != null)
-                      Chip(
-                        avatar:
-                            Icon(Icons.format_size, size: 16, color: Colors.blue),
-                        label: Text(
-                          item.size!.name.toUpperCase(),
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+
+          if (showFooter)
+            Container(
+              color: Colors.grey.withValues(alpha: 0.2),
+              width: double.infinity,
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                spacing: 4.0,
+                runSpacing: 4.0,
+                children: [
+                  if (item.size != null)
+                    Chip(
+                      avatar: Icon(
+                        Icons.format_size,
+                        size: 16,
+                        color: Colors.blue,
                       ),
-                    if (item.countryOfOrigin != null)
-                      Chip(
-                        avatar: Icon(Icons.flag, size: 16, color: Colors.green),
-                        label: Text(
-                          item.countryOfOrigin!,
-                          style: TextStyle(fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      label: Text(
+                        item.size!.name.toUpperCase(),
+                        style: TextStyle(fontSize: 12),
                       ),
-                    if (item.isFavorite)
-                      Chip(
-                        avatar:
-                            Icon(Icons.favorite, size: 16, color: Colors.red),
-                        label: Text(
-                          'Fav',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                         visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  if (item.countryOfOrigin != null)
+                    Chip(
+                      avatar: Icon(Icons.flag, size: 16, color: Colors.green),
+                      label: Text(
+                        item.countryOfOrigin!,
+                        style: TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                  ],
-                ),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  if (item.isFavorite)
+                    Chip(
+                      avatar: Icon(Icons.favorite, size: 16, color: Colors.red),
+                      label: Text('Fav', style: TextStyle(fontSize: 12)),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                ],
               ),
             ),
         ],

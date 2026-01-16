@@ -1,21 +1,37 @@
 enum ClothingSize { xs, s, m, l, xl, xxl }
 
 enum ClothingBrand {
-  a('Brand A'),
-  b('Brand B'),
-  c('Brand C'),
-  d('Brand D');
+  vc('VC'),
+  be('BE Ultimate'),
+  boon('Boon'),
+  dh('Double Happiness'),
+  five('Five Ultimate'),
+  trio('Trio'),
+  paladin('Paladin'),
+  force('Force Ultimate'),
+  gaia('Gaia Ultimate');
 
   final String displayName;
+
   const ClothingBrand(this.displayName);
 }
 
 enum ClothingType {
   jersey('Jersey'),
   shorts('Shorts'),
-  tank('Tank Top');
+  tank('Tank Top'),
+  shortyShorts('Shorty Shorts'),
+  hoodie('Hoodie'),
+  sweater('Sweater'),
+  jacket('Jacket'),
+  longSleeve('Long Sleeve'),
+  pants('Pants'),
+  neckie('Neckie'),
+  socks('Socks'),
+  gloves('Gloves');
 
   final String displayName;
+
   const ClothingType(this.displayName);
 }
 
