@@ -92,6 +92,7 @@ class ClothingItem {
   final ClothingCondition? condition;
   final bool isTradeable;
   final bool isFavorite;
+  bool isSynced;
 
   ClothingItem({
     required this.id,
@@ -107,6 +108,7 @@ class ClothingItem {
     this.condition,
     this.isTradeable = false,
     this.isFavorite = false,
+    this.isSynced = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -124,6 +126,7 @@ class ClothingItem {
       'condition': condition?.toJson(),
       'isTradeable': isTradeable,
       'isFavorite': isFavorite,
+      'isSynced': isSynced,
     };
   }
 
@@ -150,6 +153,7 @@ class ClothingItem {
           : null,
       isTradeable: json['isTradeable'] ?? false,
       isFavorite: json['isFavorite'] ?? false,
+      isSynced: json['isSynced'] ?? true
     );
   }
 }

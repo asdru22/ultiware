@@ -28,7 +28,7 @@ class ClothingRepository extends ChangeNotifier {
 
   Future<void> signIn() async {
     await _driveService.signIn();
-    await loadFromCloud(); // Load data immediately after sign-in
+    await loadFromCloud();
     notifyListeners();
   }
 
@@ -70,6 +70,7 @@ class ClothingRepository extends ChangeNotifier {
   }
 
   Future<void> addItem(ClothingItem item) async {
+    item.isSynced = false;
     _items.add(item);
     notifyListeners();
     notifyListeners();
@@ -87,6 +88,7 @@ class ClothingRepository extends ChangeNotifier {
   void updateItem(ClothingItem updatedItem) {
     final index = _items.indexWhere((item) => item.id == updatedItem.id);
     if (index != -1) {
+      updatedItem.isSynced = false;
       _items[index] = updatedItem;
       notifyListeners();
       _saveLocalItems();
@@ -109,18 +111,29 @@ class ClothingRepository extends ChangeNotifier {
         final file = File(item.frontImage);
         if (await file.exists()) {
           final filename = '${item.id}_front.jpg';
-          await _driveService.uploadFile(file, filename);
+          final success = await _driveService.uploadFile(file, filename);
+          if (!success) {
+            debugPrint("Failed to upload front image for ${item.id}");
+          }
         }
       }
       if (item.backImage != null && item.backImage!.isNotEmpty) {
         final file = File(item.backImage!);
         if (await file.exists()) {
           final filename = '${item.id}_back.jpg';
-          await _driveService.uploadFile(file, filename);
+          final success = await _driveService.uploadFile(file, filename);
+          if (!success) {
+            debugPrint("Failed to upload back image for ${item.id}");
+          }
         }
       }
     }
     debugPrint("Sync complete.");
+
+    for (final item in _items) {
+      item.isSynced = true;
+    }
+    await _saveLocalItems();
   }
 
   Future<void> loadFromCloud() async {
@@ -131,29 +144,32 @@ class ClothingRepository extends ChangeNotifier {
       final jsonContent = await _driveService.downloadJson('gear_items.json');
       if (jsonContent != null) {
         final List<dynamic> jsonList = jsonDecode(jsonContent);
-        final List<ClothingItem> cloudItems = jsonList
-            .map((item) => ClothingItem.fromJson(item))
-            .toList();
+        final List<ClothingItem> cloudItems = jsonList.map((item) {
+          final i = ClothingItem.fromJson(item);
+          i.isSynced = true;
+          return i;
+        }).toList();
 
-        // Merge strategy: Overwrite local items with cloud items if IDs match.
-        // Keep local items that are not in the cloud (optional, but safer).
-        final Map<String, ClothingItem> itemMap = {
-          for (var item in _items) item.id: item
-        };
+        final List<ClothingItem> newItems = List.from(cloudItems);
 
-        for (var cloudItem in cloudItems) {
-          itemMap[cloudItem.id] = cloudItem;
+        for (final localItem in _items) {
+          if (!localItem.isSynced) {
+            final index = newItems.indexWhere((i) => i.id == localItem.id);
+            if (index != -1) {
+              newItems[index] = localItem;
+            } else {
+              newItems.add(localItem);
+            }
+          }
         }
 
-        _items = itemMap.values.toList();
+        _items = newItems;
         notifyListeners();
         await _saveLocalItems();
-        _items = itemMap.values.toList();
-        notifyListeners();
-        await _saveLocalItems();
+
         debugPrint("Cloud load complete. Items: ${_items.length}");
 
-        // Now download images for items that need them
+        await _deleteOrphanedImages();
         await _downloadMissingImages();
       }
     } catch (e) {
@@ -165,41 +181,83 @@ class ClothingRepository extends ChangeNotifier {
     final directory = await getApplicationDocumentsDirectory();
 
     for (var item in _items) {
-      // Check Front Image
       if (item.frontImage.isNotEmpty) {
         final file = File(item.frontImage);
         if (!await file.exists()) {
-          // If local path doesn't exist, try to download to a standard location
-          // Using ID is a good way to keep filenames consistent across devices
           final targetPath = '${directory.path}/${item.id}_front.jpg';
           final targetFile = File(targetPath);
 
-          await _driveService.downloadFile('${item.id}_front.jpg', targetFile);
+          final success = await _driveService.downloadFile(
+            '${item.id}_front.jpg',
+            targetFile,
+          );
 
-          if (await targetFile.exists()) {
-            item.frontImage =
-                targetPath; // Update the path to the new local location
+          if (success && await targetFile.exists()) {
+            item.frontImage = targetPath;
+          } else {
+            debugPrint("Failed to download or find front image for ${item.id}");
           }
         }
       }
 
-      // Check Back Image
       if (item.backImage != null && item.backImage!.isNotEmpty) {
         final file = File(item.backImage!);
         if (!await file.exists()) {
           final targetPath = '${directory.path}/${item.id}_back.jpg';
           final targetFile = File(targetPath);
 
-          await _driveService.downloadFile('${item.id}_back.jpg', targetFile);
+          final success = await _driveService.downloadFile(
+            '${item.id}_back.jpg',
+            targetFile,
+          );
 
-          if (await targetFile.exists()) {
+          if (success && await targetFile.exists()) {
             item.backImage = targetPath;
+          } else {
+            debugPrint("Failed to download or find back image for ${item.id}");
           }
         }
       }
     }
-    // Save updated paths
     await _saveLocalItems();
     notifyListeners();
+  }
+
+  Future<void> _deleteOrphanedImages() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final files = directory.listSync();
+
+      for (var entity in files) {
+        if (entity is File) {
+          final filename = entity.uri.pathSegments.last;
+          if (filename.endsWith('_front.jpg') ||
+              filename.endsWith('_back.jpg')) {
+            bool isReferenced = false;
+            for (var item in _items) {
+              if ((item.frontImage.isNotEmpty &&
+                      item.frontImage.endsWith(filename)) ||
+                  (item.backImage != null &&
+                      item.backImage!.isNotEmpty &&
+                      item.backImage!.endsWith(filename))) {
+                isReferenced = true;
+                break;
+              }
+            }
+
+            if (!isReferenced) {
+              try {
+                await entity.delete();
+                debugPrint("Deleted orphaned image: $filename");
+              } catch (e) {
+                debugPrint("Error deleting orphan: $e");
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error cleaning up images: $e");
+    }
   }
 }

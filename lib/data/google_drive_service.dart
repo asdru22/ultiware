@@ -82,12 +82,12 @@ class GoogleDriveService {
     }
   }
 
-  Future<void> uploadJson(String jsonContent, String filename) async {
-    if (_driveApi == null) return;
+  Future<bool> uploadJson(String jsonContent, String filename) async {
+    if (_driveApi == null) return false;
 
     try {
       final folderId = await getAppFolderId();
-      if (folderId == null) return;
+      if (folderId == null) return false;
 
       final fileList = await _driveApi!.files.list(
         q: "name = '$filename' and '$folderId' in parents and trashed = false",
@@ -103,8 +103,9 @@ class GoogleDriveService {
       );
 
       if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final updateFile = drive.File()..name = filename;
         await _driveApi!.files.update(
-          file,
+          updateFile,
           fileList.files!.first.id!,
           uploadMedia: media,
         );
@@ -112,17 +113,19 @@ class GoogleDriveService {
         await _driveApi!.files.create(file, uploadMedia: media);
       }
       debugPrint("Uploaded JSON: $filename");
+      return true;
     } catch (e) {
       debugPrint("Error uploading JSON: $e");
+      return false;
     }
   }
 
-  Future<void> uploadFile(File localFile, String filename) async {
-    if (_driveApi == null) return;
+  Future<bool> uploadFile(File localFile, String filename) async {
+    if (_driveApi == null) return false;
 
     try {
       final folderId = await getAppFolderId();
-      if (folderId == null) return;
+      if (folderId == null) return false;
 
       final fileList = await _driveApi!.files.list(
         q: "name = '$filename' and '$folderId' in parents and trashed = false",
@@ -138,8 +141,9 @@ class GoogleDriveService {
       final media = drive.Media(stream, len);
 
       if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final updateFile = drive.File()..name = filename;
         await _driveApi!.files.update(
-          file,
+          updateFile,
           fileList.files!.first.id!,
           uploadMedia: media,
         );
@@ -147,8 +151,10 @@ class GoogleDriveService {
         await _driveApi!.files.create(file, uploadMedia: media);
       }
       debugPrint("Uploaded file: $filename");
+      return true;
     } catch (e) {
       debugPrint("Error uploading file: $e");
+      return false;
     }
   }
 
@@ -170,10 +176,12 @@ class GoogleDriveService {
       }
 
       final fileId = fileList.files!.first.id!;
-      final media = await _driveApi!.files.get(
-        fileId,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as drive.Media;
+      final media =
+          await _driveApi!.files.get(
+                fileId,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
 
       final stream = media.stream;
       final content = await utf8.decodeStream(stream);
@@ -185,12 +193,12 @@ class GoogleDriveService {
     }
   }
 
-  Future<void> downloadFile(String driveFilename, File targetFile) async {
-    if (_driveApi == null) return;
+  Future<bool> downloadFile(String driveFilename, File targetFile) async {
+    if (_driveApi == null) return false;
 
     try {
       final folderId = await getAppFolderId();
-      if (folderId == null) return;
+      if (folderId == null) return false;
 
       final fileList = await _driveApi!.files.list(
         q: "name = '$driveFilename' and '$folderId' in parents and trashed = false",
@@ -199,21 +207,25 @@ class GoogleDriveService {
 
       if (fileList.files == null || fileList.files!.isEmpty) {
         debugPrint("File not found on Drive: $driveFilename");
-        return;
+        return false;
       }
 
       final fileId = fileList.files!.first.id!;
-      final media = await _driveApi!.files.get(
-        fileId,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as drive.Media;
+      final media =
+          await _driveApi!.files.get(
+                fileId,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
 
       final stream = media.stream;
       final ios = targetFile.openWrite();
       await stream.pipe(ios);
       debugPrint("Downloaded file: $driveFilename to ${targetFile.path}");
+      return true;
     } catch (e) {
       debugPrint("Error downloading file: $e");
+      return false;
     }
   }
 }
