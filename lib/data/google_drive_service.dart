@@ -151,4 +151,69 @@ class GoogleDriveService {
       debugPrint("Error uploading file: $e");
     }
   }
+
+  Future<String?> downloadJson(String filename) async {
+    if (_driveApi == null) return null;
+
+    try {
+      final folderId = await getAppFolderId();
+      if (folderId == null) return null;
+
+      final fileList = await _driveApi!.files.list(
+        q: "name = '$filename' and '$folderId' in parents and trashed = false",
+        $fields: "files(id, name, mimeType)",
+      );
+
+      if (fileList.files == null || fileList.files!.isEmpty) {
+        debugPrint("File not found on Drive: $filename");
+        return null;
+      }
+
+      final fileId = fileList.files!.first.id!;
+      final media = await _driveApi!.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
+
+      final stream = media.stream;
+      final content = await utf8.decodeStream(stream);
+      debugPrint("Downloaded JSON: $filename");
+      return content;
+    } catch (e) {
+      debugPrint("Error downloading JSON: $e");
+      return null;
+    }
+  }
+
+  Future<void> downloadFile(String driveFilename, File targetFile) async {
+    if (_driveApi == null) return;
+
+    try {
+      final folderId = await getAppFolderId();
+      if (folderId == null) return;
+
+      final fileList = await _driveApi!.files.list(
+        q: "name = '$driveFilename' and '$folderId' in parents and trashed = false",
+        $fields: "files(id, name, mimeType)",
+      );
+
+      if (fileList.files == null || fileList.files!.isEmpty) {
+        debugPrint("File not found on Drive: $driveFilename");
+        return;
+      }
+
+      final fileId = fileList.files!.first.id!;
+      final media = await _driveApi!.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
+
+      final stream = media.stream;
+      final ios = targetFile.openWrite();
+      await stream.pipe(ios);
+      debugPrint("Downloaded file: $driveFilename to ${targetFile.path}");
+    } catch (e) {
+      debugPrint("Error downloading file: $e");
+    }
+  }
 }

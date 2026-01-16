@@ -28,8 +28,8 @@ class ClothingRepository extends ChangeNotifier {
 
   Future<void> signIn() async {
     await _driveService.signIn();
+    await loadFromCloud(); // Load data immediately after sign-in
     notifyListeners();
-    syncToCloud();
   }
 
   Future<void> signOut() async {
@@ -59,7 +59,7 @@ class ClothingRepository extends ChangeNotifier {
   Future<void> _saveLocalItems() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/gear_items.json');
+      final File file = File('${directory.path}/gear_items.json');
       final String contents = jsonEncode(
         _items.map((item) => item.toJson()).toList(),
       );
@@ -72,15 +72,16 @@ class ClothingRepository extends ChangeNotifier {
   Future<void> addItem(ClothingItem item) async {
     _items.add(item);
     notifyListeners();
+    notifyListeners();
     await _saveLocalItems();
-    syncToCloud();
+    saveToCloud();
   }
 
   Future<void> removeItem(ClothingItem item) async {
     _items.removeWhere((i) => i.id == item.id);
     notifyListeners();
     await _saveLocalItems();
-    syncToCloud();
+    saveToCloud();
   }
 
   void updateItem(ClothingItem updatedItem) {
@@ -89,11 +90,11 @@ class ClothingRepository extends ChangeNotifier {
       _items[index] = updatedItem;
       notifyListeners();
       _saveLocalItems();
-      syncToCloud();
+      saveToCloud();
     }
   }
 
-  Future<void> syncToCloud() async {
+  Future<void> saveToCloud() async {
     if (!_driveService.isSignedIn) return;
 
     debugPrint("Starting background sync...");
@@ -120,5 +121,85 @@ class ClothingRepository extends ChangeNotifier {
       }
     }
     debugPrint("Sync complete.");
+  }
+
+  Future<void> loadFromCloud() async {
+    if (!_driveService.isSignedIn) return;
+
+    debugPrint("Loading from cloud...");
+    try {
+      final jsonContent = await _driveService.downloadJson('gear_items.json');
+      if (jsonContent != null) {
+        final List<dynamic> jsonList = jsonDecode(jsonContent);
+        final List<ClothingItem> cloudItems = jsonList
+            .map((item) => ClothingItem.fromJson(item))
+            .toList();
+
+        // Merge strategy: Overwrite local items with cloud items if IDs match.
+        // Keep local items that are not in the cloud (optional, but safer).
+        final Map<String, ClothingItem> itemMap = {
+          for (var item in _items) item.id: item
+        };
+
+        for (var cloudItem in cloudItems) {
+          itemMap[cloudItem.id] = cloudItem;
+        }
+
+        _items = itemMap.values.toList();
+        notifyListeners();
+        await _saveLocalItems();
+        _items = itemMap.values.toList();
+        notifyListeners();
+        await _saveLocalItems();
+        debugPrint("Cloud load complete. Items: ${_items.length}");
+
+        // Now download images for items that need them
+        await _downloadMissingImages();
+      }
+    } catch (e) {
+      debugPrint("Error loading from cloud: $e");
+    }
+  }
+
+  Future<void> _downloadMissingImages() async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    for (var item in _items) {
+      // Check Front Image
+      if (item.frontImage.isNotEmpty) {
+        final file = File(item.frontImage);
+        if (!await file.exists()) {
+          // If local path doesn't exist, try to download to a standard location
+          // Using ID is a good way to keep filenames consistent across devices
+          final targetPath = '${directory.path}/${item.id}_front.jpg';
+          final targetFile = File(targetPath);
+
+          await _driveService.downloadFile('${item.id}_front.jpg', targetFile);
+
+          if (await targetFile.exists()) {
+            item.frontImage =
+                targetPath; // Update the path to the new local location
+          }
+        }
+      }
+
+      // Check Back Image
+      if (item.backImage != null && item.backImage!.isNotEmpty) {
+        final file = File(item.backImage!);
+        if (!await file.exists()) {
+          final targetPath = '${directory.path}/${item.id}_back.jpg';
+          final targetFile = File(targetPath);
+
+          await _driveService.downloadFile('${item.id}_back.jpg', targetFile);
+
+          if (await targetFile.exists()) {
+            item.backImage = targetPath;
+          }
+        }
+      }
+    }
+    // Save updated paths
+    await _saveLocalItems();
+    notifyListeners();
   }
 }

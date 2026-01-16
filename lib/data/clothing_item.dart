@@ -18,6 +18,7 @@ enum ClothingBrand {
   const ClothingBrand(this.displayName);
 
   String toJson() => name;
+
   static ClothingBrand fromJson(String json) => values.byName(json);
 }
 
@@ -40,6 +41,7 @@ enum ClothingType {
   const ClothingType(this.displayName);
 
   String toJson() => name;
+
   static ClothingType fromJson(String json) => values.byName(json);
 }
 
@@ -52,9 +54,11 @@ enum ClothingSource {
   other('Other');
 
   final String displayName;
+
   const ClothingSource(this.displayName);
 
   String toJson() => name;
+
   static ClothingSource fromJson(String json) => values.byName(json);
 }
 
@@ -66,16 +70,18 @@ enum ClothingCondition {
 
   final String displayName;
   final IconData icon;
+
   const ClothingCondition(this.displayName, this.icon);
 
   String toJson() => name;
+
   static ClothingCondition fromJson(String json) => values.byName(json);
 }
 
 class ClothingItem {
   final String id;
-  final String frontImage;
-  final String? backImage;
+  String frontImage;
+  String? backImage;
   final String? name;
   final ClothingSize? size;
   final ClothingBrand? brand;
