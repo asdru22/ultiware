@@ -7,6 +7,8 @@ import '../widgets/gear_grid.dart';
 import 'add_gear_screen.dart';
 import 'gear_detail_screen.dart';
 import 'account_screen.dart';
+import '../utils/filter_criteria.dart';
+import '../widgets/filter_dialog.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -22,6 +24,7 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
     _checkConnectivity();
   }
 
+  FilterCriteria _filterCriteria = FilterCriteria();
   bool _isOnline = true;
 
   Future<void> _checkConnectivity() async {
@@ -79,15 +82,18 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () {
-              debugPrint("Sort Items");
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              debugPrint("Search Items");
+            icon: const Icon(Icons.filter_list),
+            onPressed: () async {
+              final result = await showDialog<FilterCriteria>(
+                context: context,
+                builder: (context) => FilterDialog(initialCriteria: _filterCriteria),
+              );
+
+              if (result != null) {
+                setState(() {
+                  _filterCriteria = result;
+                });
+              }
             },
           ),
         ],
@@ -152,8 +158,17 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   child: Text("No items yet. Add some gear!"),
                 );
               }
+              final filteredItems = repo.items.where((item) {
+                return _filterCriteria.matches(item);
+              }).toList();
+
+              if (filteredItems.isEmpty) {
+                return const Center(
+                  child: Text("No items match your filter."),
+                );
+              }
               return GearGrid(
-                items: repo.items,
+                items: filteredItems,
                 onItemTap: (item) async {
                   final result = await Navigator.push(
                     context,
