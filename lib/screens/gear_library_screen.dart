@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../data/clothing_item.dart';
-import '../data/dummy_data.dart';
 import '../widgets/gear_grid.dart';
 import 'add_gear_screen.dart';
 
@@ -12,7 +11,7 @@ class GearLibraryScreen extends StatefulWidget {
 }
 
 class _GearLibraryScreenState extends State<GearLibraryScreen> {
-  final List<ClothingItem> _items = List.from(dummyGear);
+  final List<ClothingItem> _items = [];
 
   Future<void> _addItem() async {
     final newItem = await Navigator.push(

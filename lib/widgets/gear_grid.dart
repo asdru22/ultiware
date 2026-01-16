@@ -33,6 +33,15 @@ class _GearGridState extends State<GearGrid> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.items.isEmpty) {
+      return Center(
+        child: Text(
+          "Wardrobe is empty",
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+      );
+    }
+    
     final orientation = MediaQuery.of(context).orientation;
     final minCols = orientation == Orientation.landscape ? 2.0 : 1.0;
     if (_crossAxisCount < minCols) {
@@ -62,7 +71,10 @@ class _GearGridState extends State<GearGrid> {
     final bool hideText = _crossAxisCount.round() >= 3;
 
     final bool hasChips =
-        item.size != null || item.countryOfOrigin != null || item.isFavorite;
+        item.size != null ||
+        item.isFavorite ||
+        item.isTradeable ||
+        item.condition != null;
 
     final bool showFooter = !hideText && hasChips;
 
@@ -123,38 +135,45 @@ class _GearGridState extends State<GearGrid> {
                 spacing: 4.0,
                 runSpacing: 4.0,
                 children: [
-                  if (item.size != null)
+                  if (item.isTradeable)
                     Chip(
-                      avatar: Icon(
-                        Icons.format_size,
+                      label: Icon(
+                        Icons.swap_horiz,
                         size: 16,
                         color: Colors.blue,
                       ),
+                      side: BorderSide(color: Colors.blue),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    )
+                  else if (item.isFavorite)
+                    Chip(
+                      label: Icon(Icons.favorite, size: 16, color: Colors.red),
+                      side: BorderSide(color: Colors.red),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  if (item.size != null)
+                    Chip(
                       label: Text(
                         item.size!.name.toUpperCase(),
-                        style: TextStyle(fontSize: 12),
+                        style: TextStyle(fontSize: 12, color: Colors.green),
                       ),
+                      side: BorderSide(color: Colors.green),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  if (item.countryOfOrigin != null)
+                  if (item.condition != null)
                     Chip(
-                      avatar: Icon(Icons.flag, size: 16, color: Colors.green),
-                      label: Text(
-                        item.countryOfOrigin!,
-                        style: TextStyle(fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      label: Icon(
+                        item.condition!.icon,
+                        size: 16,
+                        color: Colors.grey,
                       ),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  if (item.isFavorite)
-                    Chip(
-                      avatar: Icon(Icons.favorite, size: 16, color: Colors.red),
-                      label: Text('Fav', style: TextStyle(fontSize: 12)),
+                      side: BorderSide(color: Colors.grey),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

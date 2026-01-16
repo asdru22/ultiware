@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import '../data/clothing_item.dart';
 import 'custom_image_picker.dart';
+import '../widgets/selection_screen.dart';
 
 class AddGearScreen extends StatefulWidget {
   const AddGearScreen({super.key});
@@ -22,9 +23,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
   ClothingSize? _size;
   ClothingBrand? _brand;
   ClothingType? _type;
+  ClothingSource? _source;
+  ClothingCondition? _condition;
   String? _country;
   int? _year;
   bool _isFavorite = false;
+  bool _isTradeable = false;
 
   // Controllers
   final TextEditingController _countryController = TextEditingController();
@@ -102,6 +106,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
         type: _type,
         countryOfOrigin: _country,
         productionYear: _year,
+        source: _source,
+        condition: _condition,
+        isTradeable: _isTradeable,
         isFavorite: _isFavorite,
       );
 
@@ -156,41 +163,102 @@ class _AddGearScreenState extends State<AddGearScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Brand (Choice Chips)
-            Text('Brand', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              children: ClothingBrand.values.map((brand) {
-                return ChoiceChip(
-                  label: Text(brand.displayName),
-                  selected: _brand == brand,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _brand = selected ? brand : null;
-                    });
-                  },
+            // Brand (Selection Screen)
+            TextFormField(
+              controller: TextEditingController(text: _brand?.displayName ?? ''),
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Brand',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.branding_watermark), // Or any suitable icon
+                suffixIcon: Icon(Icons.arrow_drop_down),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SelectionScreen<ClothingBrand>(
+                      title: 'Select Brand',
+                      items: ClothingBrand.values,
+                      itemLabelBuilder: (brand) => brand.displayName,
+                      onSelected: (brand) {
+                        setState(() {
+                          _brand = brand;
+                        });
+                      },
+                    ),
+                  ),
                 );
-              }).toList(),
+              },
             ),
             const SizedBox(height: 16),
 
-            // Type (Choice Chips)
-            Text('Type', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              children: ClothingType.values.map((type) {
-                return ChoiceChip(
-                  label: Text(type.displayName),
-                  selected: _type == type,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _type = selected ? type : null;
-                    });
-                  },
+            // Type (Selection Screen)
+            TextFormField(
+              controller: TextEditingController(text: _type?.displayName ?? ''),
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Type',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.category), // Or any suitable icon
+                suffixIcon: Icon(Icons.arrow_drop_down),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SelectionScreen<ClothingType>(
+                      title: 'Select Type',
+                      items: ClothingType.values,
+                      itemLabelBuilder: (type) => type.displayName,
+                      onSelected: (type) {
+                        setState(() {
+                          _type = type;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Source (Dropdown)
+            DropdownMenu<ClothingSource>(
+              width: MediaQuery.of(context).size.width - 32,
+              initialSelection: _source,
+              label: const Text('Source'),
+              dropdownMenuEntries: ClothingSource.values.map((source) {
+                return DropdownMenuEntry<ClothingSource>(
+                  value: source,
+                  label: source.displayName,
                 );
               }).toList(),
+              onSelected: (ClothingSource? source) {
+                setState(() {
+                  _source = source;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Condition (Dropdown)
+            DropdownMenu<ClothingCondition>(
+              width: MediaQuery.of(context).size.width - 32,
+              initialSelection: _condition,
+              label: const Text('Condition'),
+              dropdownMenuEntries: ClothingCondition.values.map((condition) {
+                return DropdownMenuEntry<ClothingCondition>(
+                  value: condition,
+                  label: condition.displayName,
+                  leadingIcon: Icon(condition.icon),
+                );
+              }).toList(),
+              onSelected: (ClothingCondition? condition) {
+                setState(() {
+                  _condition = condition;
+                });
+              },
             ),
             const SizedBox(height: 16),
 
@@ -243,11 +311,33 @@ class _AddGearScreenState extends State<AddGearScreen> {
               onChanged: (bool value) {
                 setState(() {
                   _isFavorite = value;
+                  if (_isFavorite) {
+                    _isTradeable = false;
+                  }
                 });
               },
               secondary: Icon(
                 _isFavorite ? Icons.favorite : Icons.favorite_border,
                 color: _isFavorite ? Colors.red : null,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Tradeable Switch
+            SwitchListTile(
+              title: const Text('Mark as Tradeable'),
+              value: _isTradeable,
+              onChanged: (bool value) {
+                setState(() {
+                  _isTradeable = value;
+                  if (_isTradeable) {
+                    _isFavorite = false;
+                  }
+                });
+              },
+              secondary: Icon(
+                Icons.swap_horiz,
+                color: _isTradeable ? Colors.blue : null,
               ),
             ),
             const SizedBox(height: 32),

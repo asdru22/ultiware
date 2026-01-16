@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum ClothingSize { xs, s, m, l, xl, xxl }
 
 enum ClothingBrand {
@@ -35,6 +37,29 @@ enum ClothingType {
   const ClothingType(this.displayName);
 }
 
+enum ClothingSource {
+  club('Club Team'),
+  national('National Team'),
+  college('College Team'),
+  event('Event'),
+  store('Store'),
+  other('Other');
+
+  final String displayName;
+  const ClothingSource(this.displayName);
+}
+
+enum ClothingCondition {
+  newCondition('New', Icons.star),
+  likeNew('Like New', Icons.sentiment_very_satisfied),
+  ok('Ok', Icons.sentiment_satisfied),
+  bad('Bad', Icons.sentiment_dissatisfied);
+
+  final String displayName;
+  final IconData icon;
+  const ClothingCondition(this.displayName, this.icon);
+}
+
 class ClothingItem {
   final String id;
   final String frontImage;
@@ -45,6 +70,9 @@ class ClothingItem {
   final ClothingType? type;
   final String? countryOfOrigin;
   final int? productionYear;
+  final ClothingSource? source;
+  final ClothingCondition? condition;
+  final bool isTradeable;
   final bool isFavorite;
 
   ClothingItem({
@@ -57,6 +85,9 @@ class ClothingItem {
     this.type,
     this.countryOfOrigin,
     this.productionYear,
+    this.source,
+    this.condition,
+    this.isTradeable = false,
     this.isFavorite = false,
   });
 }
