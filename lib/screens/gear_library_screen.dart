@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/clothing_item.dart';
+import '../data/clothing_repository.dart';
 import '../widgets/gear_grid.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'add_gear_screen.dart';
 import 'gear_detail_screen.dart';
 
@@ -15,57 +14,24 @@ class GearLibraryScreen extends StatefulWidget {
 }
 
 class _GearLibraryScreenState extends State<GearLibraryScreen> {
-  final List<ClothingItem> _items = [];
-
   @override
   void initState() {
     super.initState();
-    _loadItems();
   }
 
-  Future<void> _loadItems() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/gear_items.json');
-      if (await file.exists()) {
-        final String contents = await file.readAsString();
-        final List<dynamic> jsonList = jsonDecode(contents);
-        setState(() {
-          _items.clear();
-          _items.addAll(
-            jsonList.map((item) => ClothingItem.fromJson(item)).toList(),
-          );
-        });
-      }
-    } catch (e) {
-      debugPrint("Error loading items: $e");
-    }
-  }
-
-  Future<void> _saveItems() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/gear_items.json');
-      final String contents = jsonEncode(
-        _items.map((item) => item.toJson()).toList(),
-      );
-      await file.writeAsString(contents);
-    } catch (e) {
-      debugPrint("Error saving items: $e");
-    }
-  }
-
-  Future<void> _addItem() async {
+  Future<void> _addItem(BuildContext context) async {
     final newItem = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddGearScreen()),
     );
 
     if (newItem != null && newItem is ClothingItem) {
-      setState(() {
-        _items.add(newItem);
-      });
-      _saveItems();
+      if (context.mounted) {
+        await Provider.of<ClothingRepository>(
+          context,
+          listen: false,
+        ).addItem(newItem);
+      }
     }
   }
 
@@ -81,7 +47,6 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
               icon: const Icon(Icons.menu),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
-                debugPrint("Open Menu");
               },
             );
           },
@@ -101,33 +66,98 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
           ),
         ],
       ),
-      drawer: const Drawer(child: Center(child: Text("Menu Options Here"))),
+      drawer: Drawer(
+        child: Consumer<ClothingRepository>(
+          builder: (context, repo, child) {
+            final user = repo.driveService.currentUser;
+            return ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                UserAccountsDrawerHeader(
+                  accountName: Text(user?.displayName ?? "Not Signed In"),
+                  accountEmail: Text(
+                    user?.email ?? "Sign in to sync with Drive",
+                  ),
+                  currentAccountPicture: user?.photoUrl != null
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(user!.photoUrl!),
+                        )
+                      : const CircleAvatar(child: Icon(Icons.person)),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                if (repo.isSignedIn) ...[
+                  ListTile(
+                    leading: const Icon(Icons.cloud_upload),
+                    title: const Text('Sync Now'),
+                    onTap: () {
+                      repo.syncToCloud();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Syncing to Drive...')),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.logout),
+                    title: const Text('Sign Out'),
+                    onTap: () {
+                      repo.signOut();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ] else
+                  ListTile(
+                    leading: const Icon(Icons.login),
+                    title: const Text('Sign In with Google'),
+                    onTap: () {
+                      repo.signIn();
+                      Navigator.pop(context);
+                    },
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
       drawerEnableOpenDragGesture: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addItem,
-        icon: Icon(Icons.add),
-        label: Text("Add Gear"),
+        onPressed: () => _addItem(context),
+        icon: const Icon(Icons.add),
+        label: const Text("Add Gear"),
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: GearGrid(
-            items: _items,
-            onItemTap: (item) async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GearDetailScreen(item: item),
-                ),
-              );
-
-              if (result == true) {
-                setState(() {
-                  _items.remove(item);
-                });
-                _saveItems();
+          child: Consumer<ClothingRepository>(
+            builder: (context, repo, child) {
+              if (repo.isLoading) {
+                return const Center(child: CircularProgressIndicator());
               }
+              if (repo.items.isEmpty) {
+                return const Center(
+                  child: Text("No items yet. Add some gear!"),
+                );
+              }
+              return GearGrid(
+                items: repo.items,
+                onItemTap: (item) async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GearDetailScreen(item: item),
+                    ),
+                  );
+
+                  if (result == true) {
+                    if (context.mounted) {
+                      await repo.removeItem(item);
+                    }
+                  } else if (result is ClothingItem) {}
+                },
+              );
             },
           ),
         ),

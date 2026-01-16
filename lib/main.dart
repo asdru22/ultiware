@@ -2,10 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/gear_library_screen.dart';
 
+import 'package:provider/provider.dart';
+import 'data/clothing_repository.dart';
+import 'data/google_drive_service.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(const UltimateFrisbeeGearApp());
+
+  final driveService = GoogleDriveService();
+  final clothingRepository = ClothingRepository(driveService);
+
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider.value(value: clothingRepository)],
+      child: const UltimateFrisbeeGearApp(),
+    ),
+  );
 }
 
 class UltimateFrisbeeGearApp extends StatelessWidget {
