@@ -6,6 +6,7 @@ import '../data/clothing_repository.dart';
 import '../widgets/gear_grid.dart';
 import 'add_gear_screen.dart';
 import 'gear_detail_screen.dart';
+import 'account_screen.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -105,65 +106,27 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   ),
                   currentAccountPicture: user?.photoUrl != null
                       ? CircleAvatar(
+                          backgroundColor: Colors.black,
                           backgroundImage: NetworkImage(user!.photoUrl!),
                         )
                       : const CircleAvatar(child: Icon(Icons.person)),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Colors.grey[900], 
                   ),
                 ),
-                if (repo.isSignedIn) ...[
-                  ListTile(
-                    leading: const Icon(Icons.cloud_upload),
-                    title: const Text('Save to Drive'),
-                    onTap: () {
-                      if (_isOnline) {
-                        repo.saveToCloud();
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Saving to Drive...')),
-                        );
-                      } else {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No internet connection')),
-                        );
-                      }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.cloud_download),
-                    title: const Text('Load from Drive'),
-                    onTap: () {
-                       if (_isOnline) {
-                        repo.loadFromCloud();
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Loading from Drive...')),
-                        );
-                       } else {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No internet connection')),
-                        );
-                       }
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Sign Out'),
-                    onTap: () {
-                      repo.signOut();
-                      Navigator.pop(context);
-                    },
-                  ),
-                ] else if (_isOnline)
-                  ListTile(
-                    leading: const Icon(Icons.login),
-                    title: const Text('Sign In with Google'),
-                    onTap: () {
-                      repo.signIn();
-                      Navigator.pop(context);
-                    },
-                  ),
+                ListTile(
+                  leading: const Icon(Icons.manage_accounts),
+                  title: const Text('Account'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AccountScreen(),
+                      ),
+                    );
+                  },
+                ),
               ],
             );
           },
