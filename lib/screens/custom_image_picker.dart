@@ -116,7 +116,7 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
     try {
       final XFile file = await _controller!.takePicture();
       if (mounted) {
-        Navigator.pop(context, file.path);
+        Navigator.pop(context, {'path': file.path, 'source': 'camera'});
       }
     } catch (e) {
       debugPrint("Error taking picture: $e");
@@ -126,7 +126,7 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
   Future<void> _selectGalleryImage(AssetEntity entity) async {
     final File? file = await entity.file;
     if (file != null && mounted) {
-      Navigator.pop(context, file.path);
+      Navigator.pop(context, {'path': file.path, 'source': 'gallery'});
     }
   }
 

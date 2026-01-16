@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../data/clothing_item.dart';
 import 'custom_image_picker.dart';
 import '../widgets/selection_screen.dart';
@@ -42,17 +44,29 @@ class _AddGearScreenState extends State<AddGearScreen> {
   }
 
   Future<void> _pickImage(bool isFront) async {
-    final String? pickedPath = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CustomImagePicker()),
     );
 
-    if (pickedPath != null) {
+    if (result != null && result is Map) {
+      String imagePath = result['path'];
+      final String source = result['source'];
+
+      if (source == 'camera') {
+        // Copy to permanent storage
+        final directory = await getApplicationDocumentsDirectory();
+        final String fileName = path.basename(imagePath);
+        final String newPath = path.join(directory.path, fileName);
+        await File(imagePath).copy(newPath);
+        imagePath = newPath;
+      }
+
       setState(() {
         if (isFront) {
-          _frontImage = pickedPath;
+          _frontImage = imagePath;
         } else {
-          _backImage = pickedPath;
+          _backImage = imagePath;
         }
       });
     }
@@ -143,34 +157,41 @@ class _AddGearScreenState extends State<AddGearScreen> {
             ),
             const SizedBox(height: 16),
 
-            Text('Size', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            SegmentedButton<ClothingSize>(
-              showSelectedIcon: false,
-              segments: ClothingSize.values.map((size) {
-                return ButtonSegment<ClothingSize>(
-                  value: size,
-                  label: Text(size.name.toUpperCase()),
-                );
-              }).toList(),
-              selected: _size != null ? {_size!} : {},
-              onSelectionChanged: (Set<ClothingSize> newSelection) {
-                setState(() {
-                  _size = newSelection.first;
-                });
-              },
-              emptySelectionAllowed: true,
-            ),
-            const SizedBox(height: 16),
+            if (_type != ClothingType.neckie &&
+                _type != ClothingType.socks &&
+                _type != ClothingType.gloves) ...[
+              Text('Size', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SegmentedButton<ClothingSize>(
+                showSelectedIcon: false,
+                segments: ClothingSize.values.map((size) {
+                  return ButtonSegment<ClothingSize>(
+                    value: size,
+                    label: Text(size.name.toUpperCase()),
+                  );
+                }).toList(),
+                selected: _size != null ? {_size!} : {},
+                onSelectionChanged: (Set<ClothingSize> newSelection) {
+                  setState(() {
+                    _size = newSelection.first;
+                  });
+                },
+                emptySelectionAllowed: true,
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Brand (Selection Screen)
             TextFormField(
-              controller: TextEditingController(text: _brand?.displayName ?? ''),
+              controller: TextEditingController(
+                text: _brand?.displayName ?? '',
+              ),
               readOnly: true,
               decoration: const InputDecoration(
                 labelText: 'Brand',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.branding_watermark), // Or any suitable icon
+                prefixIcon: Icon(Icons.branding_watermark),
+                // Or any suitable icon
                 suffixIcon: Icon(Icons.arrow_drop_down),
               ),
               onTap: () {
@@ -214,6 +235,11 @@ class _AddGearScreenState extends State<AddGearScreen> {
                       onSelected: (type) {
                         setState(() {
                           _type = type;
+                          if (_type == ClothingType.neckie ||
+                              _type == ClothingType.socks ||
+                              _type == ClothingType.gloves) {
+                            _size = null;
+                          }
                         });
                       },
                     ),
@@ -285,8 +311,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
                   },
                 );
               },
-              validator: (value) =>
-                  _country == null ? 'Please select a country' : null,
+              validator: (value) => null, // Optional now
             ),
             const SizedBox(height: 16),
 

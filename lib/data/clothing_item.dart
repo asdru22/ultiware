@@ -16,6 +16,9 @@ enum ClothingBrand {
   final String displayName;
 
   const ClothingBrand(this.displayName);
+
+  String toJson() => name;
+  static ClothingBrand fromJson(String json) => values.byName(json);
 }
 
 enum ClothingType {
@@ -35,6 +38,9 @@ enum ClothingType {
   final String displayName;
 
   const ClothingType(this.displayName);
+
+  String toJson() => name;
+  static ClothingType fromJson(String json) => values.byName(json);
 }
 
 enum ClothingSource {
@@ -47,6 +53,9 @@ enum ClothingSource {
 
   final String displayName;
   const ClothingSource(this.displayName);
+
+  String toJson() => name;
+  static ClothingSource fromJson(String json) => values.byName(json);
 }
 
 enum ClothingCondition {
@@ -58,6 +67,9 @@ enum ClothingCondition {
   final String displayName;
   final IconData icon;
   const ClothingCondition(this.displayName, this.icon);
+
+  String toJson() => name;
+  static ClothingCondition fromJson(String json) => values.byName(json);
 }
 
 class ClothingItem {
@@ -90,4 +102,48 @@ class ClothingItem {
     this.isTradeable = false,
     this.isFavorite = false,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'frontImage': frontImage,
+      'backImage': backImage,
+      'name': name,
+      'size': size?.name,
+      'brand': brand?.toJson(),
+      'type': type?.toJson(),
+      'countryOfOrigin': countryOfOrigin,
+      'productionYear': productionYear,
+      'source': source?.toJson(),
+      'condition': condition?.toJson(),
+      'isTradeable': isTradeable,
+      'isFavorite': isFavorite,
+    };
+  }
+
+  factory ClothingItem.fromJson(Map<String, dynamic> json) {
+    return ClothingItem(
+      id: json['id'],
+      frontImage: json['frontImage'],
+      backImage: json['backImage'],
+      name: json['name'],
+      size: json['size'] != null
+          ? ClothingSize.values.byName(json['size'])
+          : null,
+      brand: json['brand'] != null
+          ? ClothingBrand.fromJson(json['brand'])
+          : null,
+      type: json['type'] != null ? ClothingType.fromJson(json['type']) : null,
+      countryOfOrigin: json['countryOfOrigin'],
+      productionYear: json['productionYear'],
+      source: json['source'] != null
+          ? ClothingSource.fromJson(json['source'])
+          : null,
+      condition: json['condition'] != null
+          ? ClothingCondition.fromJson(json['condition'])
+          : null,
+      isTradeable: json['isTradeable'] ?? false,
+      isFavorite: json['isFavorite'] ?? false,
+    );
+  }
 }

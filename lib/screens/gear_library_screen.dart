@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../data/clothing_item.dart';
 import '../widgets/gear_grid.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'add_gear_screen.dart';
+import 'gear_detail_screen.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -13,6 +17,44 @@ class GearLibraryScreen extends StatefulWidget {
 class _GearLibraryScreenState extends State<GearLibraryScreen> {
   final List<ClothingItem> _items = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/gear_items.json');
+      if (await file.exists()) {
+        final String contents = await file.readAsString();
+        final List<dynamic> jsonList = jsonDecode(contents);
+        setState(() {
+          _items.clear();
+          _items.addAll(
+            jsonList.map((item) => ClothingItem.fromJson(item)).toList(),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading items: $e");
+    }
+  }
+
+  Future<void> _saveItems() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/gear_items.json');
+      final String contents = jsonEncode(
+        _items.map((item) => item.toJson()).toList(),
+      );
+      await file.writeAsString(contents);
+    } catch (e) {
+      debugPrint("Error saving items: $e");
+    }
+  }
+
   Future<void> _addItem() async {
     final newItem = await Navigator.push(
       context,
@@ -23,6 +65,7 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
       setState(() {
         _items.add(newItem);
       });
+      _saveItems();
     }
   }
 
@@ -69,7 +112,24 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: GearGrid(items: _items),
+          child: GearGrid(
+            items: _items,
+            onItemTap: (item) async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GearDetailScreen(item: item),
+                ),
+              );
+
+              if (result == true) {
+                setState(() {
+                  _items.remove(item);
+                });
+                _saveItems();
+              }
+            },
+          ),
         ),
       ),
     );

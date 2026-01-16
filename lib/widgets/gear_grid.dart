@@ -4,8 +4,9 @@ import '../data/clothing_item.dart';
 
 class GearGrid extends StatefulWidget {
   final List<ClothingItem> items;
+  final void Function(ClothingItem)? onItemTap;
 
-  const GearGrid({super.key, required this.items});
+  const GearGrid({super.key, required this.items, this.onItemTap});
 
   @override
   State<GearGrid> createState() => _GearGridState();
@@ -82,14 +83,16 @@ class _GearGridState extends State<GearGrid> {
       elevation: 1,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Container(
-              color: Colors.grey.withValues(alpha: 0.2),
-              child: item.frontImage.isNotEmpty
-                  ? (item.frontImage.startsWith('http')
+      child: InkWell(
+        onTap: () => widget.onItemTap?.call(item),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Container(
+                color: Colors.grey.withValues(alpha: 0.2),
+                child: item.frontImage.isNotEmpty
+                    ? (item.frontImage.startsWith('http')
                         ? Image.network(
                             item.frontImage,
                             fit: BoxFit.cover,
@@ -116,72 +119,73 @@ class _GearGridState extends State<GearGrid> {
                               );
                             },
                           ))
-                  : Center(
-                      child: Icon(
-                        Icons.checkroom,
-                        size: 48,
-                        color: Colors.white60,
+                    : Center(
+                        child: Icon(
+                          Icons.checkroom,
+                          size: 48,
+                          color: Colors.white60,
+                        ),
                       ),
-                    ),
-            ),
-          ),
-
-          if (showFooter)
-            Container(
-              color: Colors.grey.withValues(alpha: 0.2),
-              width: double.infinity,
-              padding: const EdgeInsets.all(8.0),
-              child: Wrap(
-                spacing: 4.0,
-                runSpacing: 4.0,
-                children: [
-                  if (item.isTradeable)
-                    Chip(
-                      label: Icon(
-                        Icons.swap_horiz,
-                        size: 16,
-                        color: Colors.blue,
-                      ),
-                      side: BorderSide(color: Colors.blue),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    )
-                  else if (item.isFavorite)
-                    Chip(
-                      label: Icon(Icons.favorite, size: 16, color: Colors.red),
-                      side: BorderSide(color: Colors.red),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  if (item.size != null)
-                    Chip(
-                      label: Text(
-                        item.size!.name.toUpperCase(),
-                        style: TextStyle(fontSize: 12, color: Colors.green),
-                      ),
-                      side: BorderSide(color: Colors.green),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  if (item.condition != null)
-                    Chip(
-                      label: Icon(
-                        item.condition!.icon,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      side: BorderSide(color: Colors.grey),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                ],
               ),
             ),
-        ],
+  
+            if (showFooter)
+              Container(
+                color: Colors.grey.withValues(alpha: 0.2),
+                width: double.infinity,
+                padding: const EdgeInsets.all(8.0),
+                child: Wrap(
+                  spacing: 4.0,
+                  runSpacing: 4.0,
+                  children: [
+                    if (item.isTradeable)
+                      Chip(
+                        label: Icon(
+                          Icons.swap_horiz,
+                          size: 16,
+                          color: Colors.blue,
+                        ),
+                        side: BorderSide(color: Colors.blue),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      )
+                    else if (item.isFavorite)
+                      Chip(
+                        label: Icon(Icons.favorite, size: 16, color: Colors.red),
+                        side: BorderSide(color: Colors.red),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    if (item.size != null)
+                      Chip(
+                        label: Text(
+                          item.size!.name.toUpperCase(),
+                          style: TextStyle(fontSize: 12, color: Colors.green),
+                        ),
+                        side: BorderSide(color: Colors.green),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    if (item.condition != null)
+                      Chip(
+                        label: Icon(
+                          item.condition!.icon,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        side: BorderSide(color: Colors.grey),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
