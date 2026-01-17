@@ -15,7 +15,6 @@ class GearDetailScreen extends StatefulWidget {
 }
 
 class _GearDetailScreenState extends State<GearDetailScreen> {
-  final PageController _pageController = PageController();
   late ClothingItem _item;
 
   @override
@@ -32,7 +31,6 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
 
     if (updatedItem != null && updatedItem is ClothingItem) {
       if (mounted) {
-        // Update repository
         Provider.of<ClothingRepository>(
           context,
           listen: false,
@@ -77,16 +75,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final bool hasBackImage =
-        _item.backImage != null && _item.backImage!.isNotEmpty;
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -99,115 +88,141 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           IconButton(icon: const Icon(Icons.delete), onPressed: _handleDelete),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Responsive Image Display
-            Builder(
-              builder: (context) {
-                final isLandscape =
-                    MediaQuery.of(context).orientation == Orientation.landscape;
-                final screenHeight = MediaQuery.of(context).size.height;
+      body: GearDetailContent(item: _item),
+    );
+  }
+}
 
-                if (isLandscape) {
-                  if (hasBackImage) {
-                    return SizedBox(
-                      height: screenHeight,
-                      child: Row(
-                        children: [
-                          Expanded(child: _buildImage(_item.frontImage)),
-                          Expanded(child: _buildImage(_item.backImage!)),
-                        ],
-                      ),
-                    );
-                  } else {
-                    return SizedBox(
-                      height: screenHeight,
-                      width: double.infinity,
-                      child: _buildImage(_item.frontImage),
-                    );
-                  }
+class GearDetailContent extends StatefulWidget {
+  final ClothingItem item;
+
+  const GearDetailContent({super.key, required this.item});
+
+  @override
+  State<GearDetailContent> createState() => _GearDetailContentState();
+}
+
+class _GearDetailContentState extends State<GearDetailContent> {
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final bool hasBackImage =
+        item.backImage != null && item.backImage!.isNotEmpty;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Builder(
+            builder: (context) {
+              final isLandscape =
+                  MediaQuery.of(context).orientation == Orientation.landscape;
+              final screenHeight = MediaQuery.of(context).size.height;
+
+              if (isLandscape) {
+                if (hasBackImage) {
+                  return SizedBox(
+                    height: screenHeight,
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildImage(item.frontImage)),
+                        Expanded(child: _buildImage(item.backImage!)),
+                      ],
+                    ),
+                  );
+                } else {
+                  return SizedBox(
+                    height: screenHeight,
+                    width: double.infinity,
+                    child: _buildImage(item.frontImage),
+                  );
                 }
+              }
 
-                // Portrait Carousel
-                return SizedBox(
-                  height: 400,
-                  child: Stack(
-                    children: [
-                      PageView(
-                        controller: _pageController,
-                        children: [
-                          _buildImage(_item.frontImage),
-                          if (hasBackImage) _buildImage(_item.backImage!),
-                        ],
-                      ),
-                      if (hasBackImage)
-                        Positioned(
-                          bottom: 16,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.circle,
-                                  size: 8,
-                                  color: Colors.white70,
-                                ),
-                                SizedBox(width: 8),
-                                Icon(
-                                  Icons.circle,
-                                  size: 8,
-                                  color: Colors.white30,
-                                ),
-                              ],
-                            ),
+              return SizedBox(
+                height: 400,
+                child: Stack(
+                  children: [
+                    PageView(
+                      controller: _pageController,
+                      children: [
+                        _buildImage(item.frontImage),
+                        if (hasBackImage) _buildImage(item.backImage!),
+                      ],
+                    ),
+                    if (hasBackImage)
+                      Positioned(
+                        bottom: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: Colors.white70,
+                              ),
+                              SizedBox(width: 8),
+                              Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: Colors.white30,
+                              ),
+                            ],
                           ),
                         ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  _buildDetailRow("Brand", _item.brand?.displayName),
-                  _buildDivider(),
-                  _buildDetailRow("Type", _item.type?.displayName),
-                  _buildDivider(),
-                  if (_item.size != null) ...[
-                    _buildDetailRow("Size", _item.size!.name.toUpperCase()),
-                    _buildDivider(),
+                      ),
                   ],
-                  _buildDetailRow("Source", _item.source?.displayName),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                _buildDetailRow("Brand", item.brand?.displayName),
+                _buildDivider(),
+                _buildDetailRow("Type", item.type?.displayName),
+                _buildDivider(),
+                if (item.size != null) ...[
+                  _buildDetailRow("Size", item.size!.name.toUpperCase()),
                   _buildDivider(),
-                  _buildDetailRow("Condition", _item.condition?.displayName),
-                  _buildDivider(),
-                  _buildDetailRow("Country", _item.countryOfOrigin),
-                  _buildDivider(),
-                  if (_item.productionYear != null) ...[
-                    _buildDetailRow("Year", _item.productionYear.toString()),
-                    _buildDivider(),
-                  ],
-                  if (_item.isFavorite) ...[
-                    _buildSwitchRow("Favorite", true, Colors.red),
-                    _buildDivider(),
-                  ],
-                  if (_item.isTradeable) ...[
-                    _buildSwitchRow("Tradeable", true, Colors.blue),
-                    _buildDivider(),
-                  ],
                 ],
-              ),
+                _buildDetailRow("Source", item.source?.displayName),
+                _buildDivider(),
+                _buildDetailRow("Condition", item.condition?.displayName),
+                _buildDivider(),
+                _buildDetailRow("Country", item.countryOfOrigin),
+                _buildDivider(),
+                if (item.productionYear != null) ...[
+                  _buildDetailRow("Year", item.productionYear.toString()),
+                  _buildDivider(),
+                ],
+                if (item.isFavorite) ...[
+                  _buildSwitchRow("Favorite", true, Colors.red),
+                  _buildDivider(),
+                ],
+                if (item.isTradeable) ...[
+                  _buildSwitchRow("Tradeable", true, Colors.blue),
+                  _buildDivider(),
+                ],
+              ],
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }

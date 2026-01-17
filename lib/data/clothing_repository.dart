@@ -141,6 +141,12 @@ class ClothingRepository extends ChangeNotifier {
     await _saveLocalItems();
   }
 
+  Future<void> deleteTrade(Trade trade) async {
+    _trades.removeWhere((t) => t.id == trade.id);
+    notifyListeners();
+    await _saveLocalTrades();
+  }
+
   Future<void> saveToCloud() async {
     if (!_remoteDataSource.isSignedIn) return;
 

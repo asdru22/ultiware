@@ -5,6 +5,7 @@ import '../data/clothing_repository.dart';
 import '../data/clothing_item.dart';
 import '../data/trade.dart';
 import 'package:intl/intl.dart';
+import 'gear_detail_screen.dart';
 
 class TradeHistoryScreen extends StatelessWidget {
   const TradeHistoryScreen({super.key});
@@ -63,7 +64,6 @@ class TradeHistoryScreen extends StatelessWidget {
             );
           }
 
-          // Sort trades by date descending (repo might not guarantee it)
           final sortedTrades = List<Trade>.from(trades)
             ..sort((a, b) => b.date.compareTo(a.date));
 
@@ -72,7 +72,6 @@ class TradeHistoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final trade = sortedTrades[index];
 
-              // Resolve items
               final givenItems = trade.givenItemIds.map((id) {
                 try {
                   return repo.items.firstWhere((item) => item.id == id);
@@ -96,23 +95,82 @@ class TradeHistoryScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        DateFormat.yMMMd().add_jm().format(trade.date),
-                        style: Theme.of(context).textTheme.bodySmall,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            DateFormat.yMMMd().add_jm().format(trade.date),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.grey),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Trade'),
+                                  content: const Text(
+                                    'Are you sure you want to delete this trade from your history? The items will not be affected.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                repo.deleteTrade(trade);
+                              }
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          // GIVEN items
                           Expanded(
                             child: Wrap(
                               children: givenItems
-                                  .map((i) => _buildItemThumbnail(i))
+                                  .map(
+                                    (i) => InkWell(
+                                      onTap: i != null
+                                          ? () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => Scaffold(
+                                                    appBar: AppBar(
+                                                      title: Text(
+                                                        i.name ??
+                                                            "Item Details",
+                                                      ),
+                                                      leading:
+                                                          const CloseButton(),
+                                                    ),
+                                                    body: GearDetailContent(
+                                                      item: i,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          : null,
+                                      child: _buildItemThumbnail(i),
+                                    ),
+                                  )
                                   .toList(),
                             ),
                           ),
 
-                          // Arrow
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16.0,
@@ -124,13 +182,6 @@ class TradeHistoryScreen extends StatelessWidget {
                                   size: 32,
                                   color: Colors.blue,
                                 ),
-                                Text(
-                                  "Gave",
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -139,7 +190,33 @@ class TradeHistoryScreen extends StatelessWidget {
                             child: Wrap(
                               alignment: WrapAlignment.end,
                               children: receivedItems
-                                  .map((i) => _buildItemThumbnail(i))
+                                  .map(
+                                    (i) => InkWell(
+                                      onTap: i != null
+                                          ? () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => Scaffold(
+                                                    appBar: AppBar(
+                                                      title: Text(
+                                                        i.name ??
+                                                            "Item Details",
+                                                      ),
+                                                      leading:
+                                                          const CloseButton(),
+                                                    ),
+                                                    body: GearDetailContent(
+                                                      item: i,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          : null,
+                                      child: _buildItemThumbnail(i),
+                                    ),
+                                  )
                                   .toList(),
                             ),
                           ),
