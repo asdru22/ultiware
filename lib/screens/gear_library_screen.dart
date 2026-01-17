@@ -10,6 +10,8 @@ import 'account_screen.dart';
 import '../utils/filter_criteria.dart';
 import '../widgets/filter_dialog.dart';
 import 'export_data_screen.dart';
+import 'trade_input_screen.dart';
+import 'trade_history_screen.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -19,6 +21,9 @@ class GearLibraryScreen extends StatefulWidget {
 }
 
 class _GearLibraryScreenState extends State<GearLibraryScreen> {
+  final Set<String> _selectedItems = {};
+  bool _isTradeMode = false;
+  
   @override
   void initState() {
     super.initState();
@@ -67,46 +72,111 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
     }
   }
 
-  @override
+  void _enterTradeMode(ClothingItem initialItem) {
+    setState(() {
+      _isTradeMode = true;
+      _selectedItems.clear();
+      _selectedItems.add(initialItem.id);
+    });
+  }
+
+  void _exitTradeMode() {
+    setState(() {
+      _isTradeMode = false;
+      _selectedItems.clear();
+    });
+  }
+
+  void _toggleSelection(ClothingItem item) {
+    setState(() {
+      if (_selectedItems.contains(item.id)) {
+        _selectedItems.remove(item.id);
+        if (_selectedItems.isEmpty) {
+          _isTradeMode = false;
+        }
+      } else {
+        _selectedItems.add(item.id);
+      }
+    });
+  }
+
+  Future<void> _proceedToTradeInput(List<ClothingItem> allItems) async {
+    final selectedObjects = allItems.where((i) => _selectedItems.contains(i.id)).toList();
+    
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TradeInputScreen(givenItems: selectedObjects),
+      ),
+    );
+
+    if (result == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Trade completed successfully!")),
+        );
+        _exitTradeMode();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ClothingRepository>(
       builder: (context, repo, child) {
-        final filteredItems = repo.items.where((item) {
+        final activeItems = repo.items.where((item) => !item.isTraded).toList();
+
+        final filteredItems = activeItems.where((item) {
           return _filterCriteria.matches(item);
         }).toList();
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('${filteredItems.length} Items'),
+            title: Text(_isTradeMode
+                ? "${_selectedItems.length} Selected"
+                : '${filteredItems.length} Items'),
             centerTitle: true,
-            leading: Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                );
-              },
-            ),
+            leading: _isTradeMode
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _exitTradeMode,
+                  )
+                : Builder(
+                    builder: (context) {
+                      return IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                      );
+                    },
+                  ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () async {
-                  final result = await showDialog<FilterCriteria>(
-                    context: context,
-                    builder: (context) =>
-                        FilterDialog(initialCriteria: _filterCriteria),
-                  );
+              if (_isTradeMode)
+                TextButton(
+                  onPressed: _selectedItems.isNotEmpty 
+                      ? () => _proceedToTradeInput(activeItems) 
+                      : null,
+                  child: const Text("Select Trade Items", style: TextStyle(fontWeight: FontWeight.bold)),
+                )
+              else ...[
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () async {
+                    final result = await showDialog<FilterCriteria>(
+                      context: context,
+                      builder: (context) =>
+                          FilterDialog(initialCriteria: _filterCriteria),
+                    );
 
-                  if (result != null) {
-                    setState(() {
-                      _filterCriteria = result;
-                    });
-                  }
-                },
-              ),
+                    if (result != null) {
+                      setState(() {
+                        _filterCriteria = result;
+                      });
+                    }
+                  },
+                ),
+              ],
             ],
           ),
           drawer: Drawer(
@@ -137,7 +207,7 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   leading: const Icon(Icons.manage_accounts),
                   title: const Text('Account'),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -150,7 +220,7 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   leading: const Icon(Icons.file_download),
                   title: const Text('Export Data'),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -159,12 +229,25 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                     );
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.history_edu),
+                  title: const Text('Trade History'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TradeHistoryScreen(),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
-          drawerEnableOpenDragGesture: true,
+          drawerEnableOpenDragGesture: !_isTradeMode,
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-          floatingActionButton: FloatingActionButton.extended(
+          floatingActionButton: _isTradeMode ? null : FloatingActionButton.extended(
             onPressed: () => _addItem(context),
             icon: const Icon(Icons.add),
             label: const Text("Add Gear"),
@@ -190,19 +273,30 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   }
                   return GearGrid(
                     items: filteredItems,
+                    selectionMode: _isTradeMode,
+                    selectedItemIds: _selectedItems,
+                    onItemLongPress: (item) {
+                       if (!_isTradeMode) {
+                         _enterTradeMode(item);
+                       }
+                    },
                     onItemTap: (item) async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GearDetailScreen(item: item),
-                        ),
-                      );
+                      if (_isTradeMode) {
+                        _toggleSelection(item);
+                      } else {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GearDetailScreen(item: item),
+                          ),
+                        );
 
-                      if (result == true) {
-                        if (context.mounted) {
-                          await repo.removeItem(item);
+                        if (result == true) {
+                          if (context.mounted) {
+                            await repo.removeItem(item);
+                          }
                         }
-                      } else if (result is ClothingItem) {}
+                      }
                     },
                   );
                 },

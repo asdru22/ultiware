@@ -1,29 +1,34 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+
+import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
+
 import 'clothing_item.dart';
-import 'datasources/remote_data_source.dart';
 import 'datasources/local_data_source.dart';
+import 'datasources/remote_data_source.dart';
+import 'trade.dart';
 
 class ClothingRepository extends ChangeNotifier {
   final RemoteDataSource _remoteDataSource;
   final LocalDataSource _localDataSource;
   List<ClothingItem> _items = [];
+  List<Trade> _trades = [];
   bool _isLoading = false;
 
   List<ClothingItem> get items => List.unmodifiable(_items);
+
+  List<Trade> get trades => List.unmodifiable(_trades);
 
   bool get isLoading => _isLoading;
 
   bool get isSignedIn => _remoteDataSource.isSignedIn;
 
-  // Expose remoteDataSource if needed strictly, otherwise careful
   RemoteDataSource get remoteDataSource => _remoteDataSource;
 
   ClothingRepository(this._remoteDataSource, this._localDataSource) {
     _loadLocalItems();
+    _loadLocalTrades();
     _remoteDataSource.signInSilently().then((_) {
       notifyListeners();
     });
@@ -50,6 +55,31 @@ class ClothingRepository extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadLocalTrades() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/trades.json');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final List<dynamic> jsonList = jsonDecode(content);
+        _trades = jsonList.map((json) => Trade.fromJson(json)).toList();
+      }
+    } catch (e) {
+      debugPrint("Error loading trades: $e");
+    }
+  }
+
+  Future<void> _saveLocalTrades() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/trades.json');
+      final content = jsonEncode(_trades.map((t) => t.toJson()).toList());
+      await file.writeAsString(content);
+    } catch (e) {
+      debugPrint("Error saving trades: $e");
     }
   }
 
@@ -80,6 +110,37 @@ class ClothingRepository extends ChangeNotifier {
     }
   }
 
+  Future<void> performTrade(
+    List<ClothingItem> givenItems,
+    List<ClothingItem> receivedItems,
+  ) async {
+    final trade = Trade(
+      id: DateTime.now().toIso8601String(),
+      date: DateTime.now(),
+      givenItemIds: givenItems.map((i) => i.id).toList(),
+      receivedItemIds: receivedItems.map((i) => i.id).toList(),
+    );
+
+    _trades.add(trade);
+    await _saveLocalTrades();
+
+    for (var item in givenItems) {
+      final index = _items.indexWhere((i) => i.id == item.id);
+      if (index != -1) {
+        _items[index].isTraded = true;
+        _items[index].isSynced = false;
+      }
+    }
+
+    for (var item in receivedItems) {
+      item.isSynced = false;
+      _items.add(item);
+    }
+
+    notifyListeners();
+    await _saveLocalItems();
+  }
+
   Future<void> saveToCloud() async {
     if (!_remoteDataSource.isSignedIn) return;
 
@@ -89,6 +150,11 @@ class ClothingRepository extends ChangeNotifier {
       _items.map((item) => item.toJson()).toList(),
     );
     await _remoteDataSource.uploadJson(jsonContent, 'gear_items.json');
+
+    final tradeJsonContent = jsonEncode(
+      _trades.map((t) => t.toJson()).toList(),
+    );
+    await _remoteDataSource.uploadJson(tradeJsonContent, 'trades.json');
 
     final Map<String, File> filesToUpload = {};
 
@@ -124,7 +190,9 @@ class ClothingRepository extends ChangeNotifier {
 
     debugPrint("Loading from cloud...");
     try {
-      final jsonContent = await _remoteDataSource.downloadJson('gear_items.json');
+      final jsonContent = await _remoteDataSource.downloadJson(
+        'gear_items.json',
+      );
       if (jsonContent != null) {
         final List<dynamic> jsonList = jsonDecode(jsonContent);
         final List<ClothingItem> cloudItems = jsonList.map((item) {
@@ -155,6 +223,25 @@ class ClothingRepository extends ChangeNotifier {
         await _localDataSource.deleteOrphanedImages(_items);
         await _downloadMissingImages();
       }
+
+      final tradeJsonContent = await _remoteDataSource.downloadJson(
+        'trades.json',
+      );
+      if (tradeJsonContent != null) {
+        final List<dynamic> tradeList = jsonDecode(tradeJsonContent);
+        final List<Trade> cloudTrades = tradeList
+            .map((t) => Trade.fromJson(t))
+            .toList();
+
+        final Set<String> localDisplayIds = _trades.map((t) => t.id).toSet();
+        for (var t in cloudTrades) {
+          if (!localDisplayIds.contains(t.id)) {
+            _trades.add(t);
+          }
+        }
+        _trades.sort((a, b) => b.date.compareTo(a.date));
+        await _saveLocalTrades();
+      }
     } catch (e) {
       debugPrint("Error loading from cloud: $e");
     }
@@ -171,8 +258,7 @@ class ClothingRepository extends ChangeNotifier {
           final targetPath = '${directory.path}/${item.id}_front.jpg';
           final targetFile = File(targetPath);
           filesToDownload['${item.id}_front.jpg'] = targetFile;
-          // Optimistically set the path, assuming download success or eventual consistency
-          item.frontImage = targetPath; 
+          item.frontImage = targetPath;
         }
       }
 
@@ -181,8 +267,8 @@ class ClothingRepository extends ChangeNotifier {
         if (!await file.exists()) {
           final targetPath = '${directory.path}/${item.id}_back.jpg';
           final targetFile = File(targetPath);
-           filesToDownload['${item.id}_back.jpg'] = targetFile;
-           item.backImage = targetPath;
+          filesToDownload['${item.id}_back.jpg'] = targetFile;
+          item.backImage = targetPath;
         }
       }
     }
@@ -190,7 +276,7 @@ class ClothingRepository extends ChangeNotifier {
     if (filesToDownload.isNotEmpty) {
       await _remoteDataSource.downloadFiles(filesToDownload);
     }
-    
+
     await _saveLocalItems();
     notifyListeners();
   }

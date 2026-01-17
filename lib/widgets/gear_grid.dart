@@ -5,8 +5,18 @@ import '../data/clothing_item.dart';
 class GearGrid extends StatefulWidget {
   final List<ClothingItem> items;
   final void Function(ClothingItem)? onItemTap;
+  final void Function(ClothingItem)? onItemLongPress;
+  final bool selectionMode;
+  final Set<String> selectedItemIds;
 
-  const GearGrid({super.key, required this.items, this.onItemTap});
+  const GearGrid({
+    super.key,
+    required this.items,
+    this.onItemTap,
+    this.onItemLongPress,
+    this.selectionMode = false,
+    this.selectedItemIds = const {},
+  });
 
   @override
   State<GearGrid> createState() => _GearGridState();
@@ -79,109 +89,141 @@ class _GearGridState extends State<GearGrid> {
 
     final bool showFooter = !hideText && hasChips;
 
+    final bool isSelected = widget.selectedItemIds.contains(item.id);
+
     return Card(
-      elevation: 1,
+      elevation: isSelected ? 4 : 1,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isSelected
+            ? const BorderSide(color: Colors.blue, width: 3)
+            : BorderSide.none,
+      ),
       child: InkWell(
         onTap: () => widget.onItemTap?.call(item),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        onLongPress: () => widget.onItemLongPress?.call(item),
+        child: Stack(
           children: [
-            Expanded(
-              child: Container(
-                color: Colors.grey.withValues(alpha: 0.2),
-                child: item.frontImage.isNotEmpty
-                    ? (item.frontImage.startsWith('http')
-                        ? Image.network(
-                            item.frontImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.checkroom,
-                                  size: 48,
-                                  color: Colors.white70,
-                                ),
-                              );
-                            },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    child: item.frontImage.isNotEmpty
+                        ? (item.frontImage.startsWith('http')
+                            ? Image.network(
+                                item.frontImage,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.checkroom,
+                                      size: 48,
+                                      color: Colors.white70,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Image.file(
+                                File(item.frontImage),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.checkroom,
+                                      size: 48,
+                                      color: Colors.white70,
+                                    ),
+                                  );
+                                },
+                              ))
+                        : Center(
+                            child: Icon(
+                              Icons.checkroom,
+                              size: 48,
+                              color: Colors.white60,
+                            ),
+                          ),
+                  ),
+                ),
+      
+                if (showFooter)
+                  Container(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8.0),
+                    child: Wrap(
+                      spacing: 4.0,
+                      runSpacing: 4.0,
+                      children: [
+                        if (item.isTradeable)
+                          Chip(
+                            label: Icon(
+                              Icons.swap_horiz,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
+                            side: BorderSide(color: Colors.blue),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           )
-                        : Image.file(
-                            File(item.frontImage),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Center(
-                                child: Icon(
-                                  Icons.checkroom,
-                                  size: 48,
-                                  color: Colors.white70,
-                                ),
-                              );
-                            },
-                          ))
-                    : Center(
-                        child: Icon(
-                          Icons.checkroom,
-                          size: 48,
-                          color: Colors.white60,
-                        ),
-                      ),
-              ),
+                        else if (item.isFavorite)
+                          Chip(
+                            label: Icon(Icons.favorite, size: 16, color: Colors.red),
+                            side: BorderSide(color: Colors.red),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        if (item.size != null)
+                          Chip(
+                            label: Text(
+                              item.size!.name.toUpperCase(),
+                              style: TextStyle(fontSize: 12, color: Colors.green),
+                            ),
+                            side: BorderSide(color: Colors.green),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        if (item.condition != null)
+                          Chip(
+                            label: Icon(
+                              item.condition!.icon,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            side: BorderSide(color: Colors.grey),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-  
-            if (showFooter)
-              Container(
-                color: Colors.grey.withValues(alpha: 0.2),
-                width: double.infinity,
-                padding: const EdgeInsets.all(8.0),
-                child: Wrap(
-                  spacing: 4.0,
-                  runSpacing: 4.0,
-                  children: [
-                    if (item.isTradeable)
-                      Chip(
-                        label: Icon(
-                          Icons.swap_horiz,
-                          size: 16,
-                          color: Colors.blue,
-                        ),
-                        side: BorderSide(color: Colors.blue),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      )
-                    else if (item.isFavorite)
-                      Chip(
-                        label: Icon(Icons.favorite, size: 16, color: Colors.red),
-                        side: BorderSide(color: Colors.red),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    if (item.size != null)
-                      Chip(
-                        label: Text(
-                          item.size!.name.toUpperCase(),
-                          style: TextStyle(fontSize: 12, color: Colors.green),
-                        ),
-                        side: BorderSide(color: Colors.green),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    if (item.condition != null)
-                      Chip(
-                        label: Icon(
-                          item.condition!.icon,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        side: BorderSide(color: Colors.grey),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                  ],
+            if (widget.selectionMode)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? Colors.blue : Colors.black54,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      isSelected ? Icons.check : Icons.circle_outlined,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
           ],
