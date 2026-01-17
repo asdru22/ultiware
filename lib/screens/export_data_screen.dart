@@ -147,6 +147,27 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
                                 "Size: ${pdfItem.item.size!.name.toUpperCase()}",
                                 style: pw.TextStyle(font: font),
                               ),
+                            if (pdfItem.item.countryOfOrigin != null &&
+                                pdfItem.item.countryOfOrigin!.isNotEmpty)
+                              pw.Text(
+                                "Country: ${pdfItem.item.countryOfOrigin}",
+                                style: pw.TextStyle(font: font),
+                              ),
+                            if (pdfItem.item.productionYear != null)
+                              pw.Text(
+                                "Year: ${pdfItem.item.productionYear}",
+                                style: pw.TextStyle(font: font),
+                              ),
+                            if (pdfItem.item.source != null)
+                              pw.Text(
+                                "Source: ${pdfItem.item.source!.displayName}",
+                                style: pw.TextStyle(font: font),
+                              ),
+                            if (pdfItem.item.condition != null)
+                              pw.Text(
+                                "Condition: ${pdfItem.item.condition!.displayName}",
+                                style: pw.TextStyle(font: font),
+                              ),
                             if (pdfItem.item.isTradeable)
                               pw.Text(
                                 "Tradeable: Yes",
@@ -200,29 +221,29 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            RadioListTile<ExportFilter>(
-              title: const Text("All items"),
-              value: ExportFilter.allItems,
+            RadioGroup<ExportFilter>(
               groupValue: _selectedFilter,
               onChanged: (value) => setState(() => _selectedFilter = value!),
-            ),
-            RadioListTile<ExportFilter>(
-              title: const Text("All tradable items"),
-              value: ExportFilter.tradable,
-              groupValue: _selectedFilter,
-              onChanged: (value) => setState(() => _selectedFilter = value!),
-            ),
-            RadioListTile<ExportFilter>(
-              title: const Text("All favourites"),
-              value: ExportFilter.favorites,
-              groupValue: _selectedFilter,
-              onChanged: (value) => setState(() => _selectedFilter = value!),
-            ),
-            RadioListTile<ExportFilter>(
-              title: const Text("All except favourites"),
-              value: ExportFilter.exceptFavorites,
-              groupValue: _selectedFilter,
-              onChanged: (value) => setState(() => _selectedFilter = value!),
+              child: Column(
+                children: [
+                  RadioListTile<ExportFilter>(
+                    title: const Text("All items"),
+                    value: ExportFilter.allItems,
+                  ),
+                  RadioListTile<ExportFilter>(
+                    title: const Text("All tradable items"),
+                    value: ExportFilter.tradable,
+                  ),
+                  RadioListTile<ExportFilter>(
+                    title: const Text("All favourites"),
+                    value: ExportFilter.favorites,
+                  ),
+                  RadioListTile<ExportFilter>(
+                    title: const Text("All except favourites"),
+                    value: ExportFilter.exceptFavorites,
+                  ),
+                ],
+              ),
             ),
             const Spacer(),
             ElevatedButton.icon(
