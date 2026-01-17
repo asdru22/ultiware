@@ -9,6 +9,7 @@ import 'gear_detail_screen.dart';
 import 'account_screen.dart';
 import '../utils/filter_criteria.dart';
 import '../widgets/filter_dialog.dart';
+import 'export_data_screen.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -141,6 +142,19 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AccountScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.file_download),
+                  title: const Text('Export Data'),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ExportDataScreen(),
                       ),
                     );
                   },
