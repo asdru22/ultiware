@@ -4,14 +4,16 @@ import 'screens/gear_library_screen.dart';
 
 import 'package:provider/provider.dart';
 import 'data/clothing_repository.dart';
-import 'data/google_drive_service.dart';
+import 'data/datasources/google_drive_data_source.dart';
+import 'data/datasources/local_data_source.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  final driveService = GoogleDriveService();
-  final clothingRepository = ClothingRepository(driveService);
+  final googleDriveDataSource = GoogleDriveDataSource();
+  final localDataSource = LocalDataSource();
+  final clothingRepository = ClothingRepository(googleDriveDataSource, localDataSource);
 
   runApp(
     MultiProvider(

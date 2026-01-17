@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'remote_data_source.dart';
 
-class GoogleDriveService {
+class GoogleDriveDataSource implements RemoteDataSource {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [drive.DriveApi.driveFileScope, drive.DriveApi.driveAppdataScope],
   );
@@ -13,10 +14,13 @@ class GoogleDriveService {
   GoogleSignInAccount? _currentUser;
   drive.DriveApi? _driveApi;
 
+  @override
   GoogleSignInAccount? get currentUser => _currentUser;
 
+  @override
   bool get isSignedIn => _currentUser != null;
 
+  @override
   Future<GoogleSignInAccount?> signIn() async {
     try {
       final account = await _googleSignIn.signIn();
@@ -31,12 +35,14 @@ class GoogleDriveService {
     }
   }
 
+  @override
   Future<void> signOut() async {
     await _googleSignIn.disconnect();
     _currentUser = null;
     _driveApi = null;
   }
 
+  @override
   Future<void> signInSilently() async {
     try {
       final account = await _googleSignIn.signInSilently();
@@ -62,7 +68,7 @@ class GoogleDriveService {
 
     try {
       final fileList = await _driveApi!.files.list(
-        q: "mimeType = 'application/vnd.google-apps.folder' andname = 'Ultiware_Data' and trashed = false",
+        q: "mimeType = 'application/vnd.google-apps.folder' and name = 'Ultiware_Data' and trashed = false",
         spaces: 'drive',
       );
 
@@ -82,6 +88,7 @@ class GoogleDriveService {
     }
   }
 
+  @override
   Future<bool> uploadJson(String jsonContent, String filename) async {
     if (_driveApi == null) return false;
 
@@ -120,6 +127,7 @@ class GoogleDriveService {
     }
   }
 
+  @override
   Future<bool> uploadFile(File localFile, String filename) async {
     if (_driveApi == null) return false;
 
@@ -158,6 +166,7 @@ class GoogleDriveService {
     }
   }
 
+  @override
   Future<String?> downloadJson(String filename) async {
     if (_driveApi == null) return null;
 
@@ -176,12 +185,10 @@ class GoogleDriveService {
       }
 
       final fileId = fileList.files!.first.id!;
-      final media =
-          await _driveApi!.files.get(
-                fileId,
-                downloadOptions: drive.DownloadOptions.fullMedia,
-              )
-              as drive.Media;
+      final media = await _driveApi!.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
 
       final stream = media.stream;
       final content = await utf8.decodeStream(stream);
@@ -193,6 +200,7 @@ class GoogleDriveService {
     }
   }
 
+  @override
   Future<bool> downloadFile(String driveFilename, File targetFile) async {
     if (_driveApi == null) return false;
 
@@ -211,12 +219,10 @@ class GoogleDriveService {
       }
 
       final fileId = fileList.files!.first.id!;
-      final media =
-          await _driveApi!.files.get(
-                fileId,
-                downloadOptions: drive.DownloadOptions.fullMedia,
-              )
-              as drive.Media;
+      final media = await _driveApi!.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
 
       final stream = media.stream;
       final ios = targetFile.openWrite();
@@ -227,5 +233,21 @@ class GoogleDriveService {
       debugPrint("Error downloading file: $e");
       return false;
     }
+  }
+
+  @override
+  Future<void> uploadFiles(Map<String, File> files) async {
+    // Parallel upload
+    await Future.wait(
+      files.entries.map((entry) => uploadFile(entry.value, entry.key)),
+    );
+  }
+
+  @override
+  Future<void> downloadFiles(Map<String, File> files) async {
+    // Parallel download
+    await Future.wait(
+      files.entries.map((entry) => downloadFile(entry.key, entry.value)),
+    );
   }
 }

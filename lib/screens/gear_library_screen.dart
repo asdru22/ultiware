@@ -115,19 +115,19 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
               children: [
                 UserAccountsDrawerHeader(
                   accountName: Text(
-                    repo.driveService.currentUser?.displayName ??
+                    repo.remoteDataSource.currentUser?.displayName ??
                         "Not Signed In",
                   ),
                   accountEmail: Text(
-                    repo.driveService.currentUser?.email ??
+                    repo.remoteDataSource.currentUser?.email ??
                         "Sign in to sync with Drive",
                   ),
                   currentAccountPicture:
-                      repo.driveService.currentUser?.photoUrl != null
+                      repo.remoteDataSource.currentUser?.photoUrl != null
                       ? CircleAvatar(
                           backgroundColor: Colors.black,
                           backgroundImage: NetworkImage(
-                            repo.driveService.currentUser!.photoUrl!,
+                            repo.remoteDataSource.currentUser!.photoUrl!,
                           ),
                         )
                       : const CircleAvatar(child: Icon(Icons.person)),

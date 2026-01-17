@@ -71,7 +71,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
       body: Consumer<ClothingRepository>(
         builder: (context, repo, child) {
-          final user = repo.driveService.currentUser;
+final user = repo.remoteDataSource.currentUser;
           final isSignedIn = repo.isSignedIn;
 
           if (!isSignedIn) {
