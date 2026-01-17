@@ -8,6 +8,8 @@ import '../data/clothing_item.dart';
 import '../screens/custom_image_picker.dart';
 import 'selection_screen.dart';
 
+enum _GearStatus { none, favorite, tradeable }
+
 class GearForm extends StatefulWidget {
   final ClothingItem? initialItem;
   final Widget? footer;
@@ -33,6 +35,7 @@ class GearFormState extends State<GearForm> {
   int? _year;
   bool _isFavorite = false;
   bool _isTradeable = false;
+  _GearStatus _status = _GearStatus.none;
 
   final TextEditingController _countryController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
@@ -59,6 +62,13 @@ class GearFormState extends State<GearForm> {
       _year = item.productionYear;
       _isFavorite = item.isFavorite;
       _isTradeable = item.isTradeable;
+      if (_isFavorite) {
+        _status = _GearStatus.favorite;
+      } else if (_isTradeable) {
+        _status = _GearStatus.tradeable;
+      } else {
+        _status = _GearStatus.none;
+      }
 
       if (_name != null) {
         _nameController.text = _name!;
@@ -102,6 +112,7 @@ class GearFormState extends State<GearForm> {
       _year = null;
       _isFavorite = false;
       _isTradeable = false;
+      _status = _GearStatus.none;
 
       _countryController.clear();
       _yearController.clear();
@@ -387,39 +398,32 @@ class GearFormState extends State<GearForm> {
           ),
           const SizedBox(height: 16),
 
-          SwitchListTile(
-            title: const Text('Mark as Favorite'),
-            value: _isFavorite,
-            onChanged: (bool value) {
-              setState(() {
-                _isFavorite = value;
-                if (_isFavorite) {
-                  _isTradeable = false;
-                }
-              });
-            },
-            secondary: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : null,
-            ),
-          ),
+          Text('Status', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
-
-          SwitchListTile(
-            title: const Text('Mark as Tradeable'),
-            value: _isTradeable,
-            onChanged: (bool value) {
+          SegmentedButton<_GearStatus>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment<_GearStatus>(
+                value: _GearStatus.none,
+                label: Text('NONE'),
+              ),
+              ButtonSegment<_GearStatus>(
+                value: _GearStatus.favorite,
+                label: Text('FAVORITE'),
+              ),
+              ButtonSegment<_GearStatus>(
+                value: _GearStatus.tradeable,
+                label: Text('TRADABLE'),
+              ),
+            ],
+            selected: {_status},
+            onSelectionChanged: (Set<_GearStatus> newSelection) {
               setState(() {
-                _isTradeable = value;
-                if (_isTradeable) {
-                  _isFavorite = false;
-                }
+                _status = newSelection.first;
+                _isFavorite = _status == _GearStatus.favorite;
+                _isTradeable = _status == _GearStatus.tradeable;
               });
             },
-            secondary: Icon(
-              Icons.swap_horiz,
-              color: _isTradeable ? Colors.blue : null,
-            ),
           ),
           const SizedBox(height: 32),
           if (widget.footer != null) widget.footer!,

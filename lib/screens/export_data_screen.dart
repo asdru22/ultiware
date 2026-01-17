@@ -24,15 +24,18 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
   bool _isGenerating = false;
 
   List<ClothingItem> _getFilteredItems(List<ClothingItem> allItems) {
+    // Filter out traded items first
+    final availableItems = allItems.where((item) => !item.isTraded).toList();
+
     switch (_selectedFilter) {
       case ExportFilter.allItems:
-        return allItems;
+        return availableItems;
       case ExportFilter.tradable:
-        return allItems.where((item) => item.isTradeable).toList();
+        return availableItems.where((item) => item.isTradeable).toList();
       case ExportFilter.favorites:
-        return allItems.where((item) => item.isFavorite).toList();
+        return availableItems.where((item) => item.isFavorite).toList();
       case ExportFilter.exceptFavorites:
-        return allItems.where((item) => !item.isFavorite).toList();
+        return availableItems.where((item) => !item.isFavorite).toList();
     }
   }
 
