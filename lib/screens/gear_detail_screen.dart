@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/clothing_item.dart';
+import 'add_gear_screen.dart';
+import 'package:provider/provider.dart';
+import '../data/clothing_repository.dart';
 
 class GearDetailScreen extends StatefulWidget {
   final ClothingItem item;
@@ -13,6 +16,34 @@ class GearDetailScreen extends StatefulWidget {
 
 class _GearDetailScreenState extends State<GearDetailScreen> {
   final PageController _pageController = PageController();
+  late ClothingItem _item;
+
+  @override
+  void initState() {
+    super.initState();
+    _item = widget.item;
+  }
+
+  Future<void> _handleEdit() async {
+    final updatedItem = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddGearScreen(itemToEdit: _item)),
+    );
+
+    if (updatedItem != null && updatedItem is ClothingItem) {
+      if (mounted) {
+        // Update repository
+        Provider.of<ClothingRepository>(
+          context,
+          listen: false,
+        ).updateItem(updatedItem);
+
+        setState(() {
+          _item = updatedItem;
+        });
+      }
+    }
+  }
 
   Future<void> _handleDelete() async {
     final bool? confirm = await showDialog<bool>(
@@ -54,17 +85,17 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final bool hasBackImage =
-        widget.item.backImage != null && widget.item.backImage!.isNotEmpty;
+        _item.backImage != null && _item.backImage!.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () =>
-              Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(widget.item.name ?? 'Gear Details'),
+        title: Text(_item.name ?? 'Gear Details'),
         actions: [
+          IconButton(icon: const Icon(Icons.edit), onPressed: _handleEdit),
           IconButton(icon: const Icon(Icons.delete), onPressed: _handleDelete),
         ],
       ),
@@ -75,7 +106,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             // Responsive Image Display
             Builder(
               builder: (context) {
-                final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                final isLandscape =
+                    MediaQuery.of(context).orientation == Orientation.landscape;
                 final screenHeight = MediaQuery.of(context).size.height;
 
                 if (isLandscape) {
@@ -84,8 +116,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
                       height: screenHeight,
                       child: Row(
                         children: [
-                          Expanded(child: _buildImage(widget.item.frontImage)),
-                          Expanded(child: _buildImage(widget.item.backImage!)),
+                          Expanded(child: _buildImage(_item.frontImage)),
+                          Expanded(child: _buildImage(_item.backImage!)),
                         ],
                       ),
                     );
@@ -93,7 +125,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
                     return SizedBox(
                       height: screenHeight,
                       width: double.infinity,
-                      child: _buildImage(widget.item.frontImage),
+                      child: _buildImage(_item.frontImage),
                     );
                   }
                 }
@@ -106,8 +138,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
                       PageView(
                         controller: _pageController,
                         children: [
-                          _buildImage(widget.item.frontImage),
-                          if (hasBackImage) _buildImage(widget.item.backImage!),
+                          _buildImage(_item.frontImage),
+                          if (hasBackImage) _buildImage(_item.backImage!),
                         ],
                       ),
                       if (hasBackImage)
@@ -119,9 +151,17 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.circle, size: 8, color: Colors.white70),
+                                Icon(
+                                  Icons.circle,
+                                  size: 8,
+                                  color: Colors.white70,
+                                ),
                                 SizedBox(width: 8),
-                                Icon(Icons.circle, size: 8, color: Colors.white30),
+                                Icon(
+                                  Icons.circle,
+                                  size: 8,
+                                  color: Colors.white30,
+                                ),
                               ],
                             ),
                           ),
@@ -136,38 +176,29 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  _buildDetailRow("Brand", widget.item.brand?.displayName),
+                  _buildDetailRow("Brand", _item.brand?.displayName),
                   _buildDivider(),
-                  _buildDetailRow("Type", widget.item.type?.displayName),
+                  _buildDetailRow("Type", _item.type?.displayName),
                   _buildDivider(),
-                  if (widget.item.size != null) ...[
-                    _buildDetailRow(
-                      "Size",
-                      widget.item.size!.name.toUpperCase(),
-                    ),
+                  if (_item.size != null) ...[
+                    _buildDetailRow("Size", _item.size!.name.toUpperCase()),
                     _buildDivider(),
                   ],
-                  _buildDetailRow("Source", widget.item.source?.displayName),
+                  _buildDetailRow("Source", _item.source?.displayName),
                   _buildDivider(),
-                  _buildDetailRow(
-                    "Condition",
-                    widget.item.condition?.displayName,
-                  ),
+                  _buildDetailRow("Condition", _item.condition?.displayName),
                   _buildDivider(),
-                  _buildDetailRow("Country", widget.item.countryOfOrigin),
+                  _buildDetailRow("Country", _item.countryOfOrigin),
                   _buildDivider(),
-                  if (widget.item.productionYear != null) ...[
-                    _buildDetailRow(
-                      "Year",
-                      widget.item.productionYear.toString(),
-                    ),
+                  if (_item.productionYear != null) ...[
+                    _buildDetailRow("Year", _item.productionYear.toString()),
                     _buildDivider(),
                   ],
-                  if (widget.item.isFavorite) ...[
+                  if (_item.isFavorite) ...[
                     _buildSwitchRow("Favorite", true, Colors.red),
                     _buildDivider(),
                   ],
-                  if (widget.item.isTradeable) ...[
+                  if (_item.isTradeable) ...[
                     _buildSwitchRow("Tradeable", true, Colors.blue),
                     _buildDivider(),
                   ],

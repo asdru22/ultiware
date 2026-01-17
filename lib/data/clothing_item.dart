@@ -11,6 +11,11 @@ enum ClothingBrand {
   trio('Trio'),
   paladin('Paladin'),
   force('Force Ultimate'),
+  nineUp('9UP'),
+  spin('Spin Ultimate'),
+  lookfly('Lookfly'),
+  clubUltimate('Club Ultimate'),
+  rubix('Rubix Sportswear'),
   gaia('Gaia Ultimate');
 
   final String displayName;
@@ -153,7 +158,7 @@ class ClothingItem {
           : null,
       isTradeable: json['isTradeable'] ?? false,
       isFavorite: json['isFavorite'] ?? false,
-      isSynced: json['isSynced'] ?? true
+      isSynced: json['isSynced'] ?? true,
     );
   }
 }

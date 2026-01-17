@@ -9,7 +9,9 @@ import 'custom_image_picker.dart';
 import '../widgets/selection_screen.dart';
 
 class AddGearScreen extends StatefulWidget {
-  const AddGearScreen({super.key});
+  final ClothingItem? itemToEdit;
+
+  const AddGearScreen({super.key, this.itemToEdit});
 
   @override
   State<AddGearScreen> createState() => _AddGearScreenState();
@@ -35,6 +37,35 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // Controllers
   final TextEditingController _countryController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.itemToEdit != null) {
+      final item = widget.itemToEdit!;
+      _frontImage = item.frontImage;
+      _backImage = item.backImage;
+      _name = item.name;
+      _size = item.size;
+      _brand = item.brand;
+      _type = item.type;
+      _source = item.source;
+      _condition = item.condition;
+      _country = item.countryOfOrigin;
+      _year = item.productionYear;
+      _isFavorite = item.isFavorite;
+      _isTradeable = item.isTradeable;
+
+      if (_country != null) {
+        _countryController.text = _country!;
+        // Note: We might miss the flag emoji here unless we parse it or store it.
+        // For now displaying name is fine.
+      }
+      if (_year != null) {
+        _yearController.text = _year.toString();
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -111,7 +142,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
       _formKey.currentState!.save();
 
       final newItem = ClothingItem(
-        id: DateTime.now().toString(),
+        id: widget.itemToEdit?.id ?? DateTime.now().toString(),
         frontImage: _frontImage!,
         backImage: _backImage,
         name: _name,
@@ -133,7 +164,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Gear')),
+      appBar: AppBar(
+        title: Text(widget.itemToEdit != null ? 'Edit Gear' : 'Add New Gear'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -371,7 +404,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
             FilledButton.icon(
               onPressed: _saveItem,
               icon: const Icon(Icons.save),
-              label: const Text('Save Gear'),
+              label: Text(
+                widget.itemToEdit != null ? 'Save Changes' : 'Save Gear',
+              ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

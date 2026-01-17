@@ -30,16 +30,18 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
   Future<void> _checkConnectivity() async {
     final connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult.contains(ConnectivityResult.none)) {
-        setState(() {
-          _isOnline = false;
-        });
+      setState(() {
+        _isOnline = false;
+      });
     } else {
-        setState(() {
-          _isOnline = true;
-        });
+      setState(() {
+        _isOnline = true;
+      });
     }
 
-    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+    Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> result,
+    ) {
       if (mounted) {
         setState(() {
           _isOnline = !result.contains(ConnectivityResult.none);
@@ -65,60 +67,70 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ultiware'),
-        centerTitle: true,
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () async {
-              final result = await showDialog<FilterCriteria>(
-                context: context,
-                builder: (context) => FilterDialog(initialCriteria: _filterCriteria),
-              );
+    return Consumer<ClothingRepository>(
+      builder: (context, repo, child) {
+        final filteredItems = repo.items.where((item) {
+          return _filterCriteria.matches(item);
+        }).toList();
 
-              if (result != null) {
-                setState(() {
-                  _filterCriteria = result;
-                });
-              }
-            },
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('${filteredItems.length} Items'),
+            centerTitle: true,
+            leading: Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                );
+              },
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () async {
+                  final result = await showDialog<FilterCriteria>(
+                    context: context,
+                    builder: (context) =>
+                        FilterDialog(initialCriteria: _filterCriteria),
+                  );
+
+                  if (result != null) {
+                    setState(() {
+                      _filterCriteria = result;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      drawer: Drawer(
-        child: Consumer<ClothingRepository>(
-          builder: (context, repo, child) {
-            final user = repo.driveService.currentUser;
-            return ListView(
+          drawer: Drawer(
+            child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 UserAccountsDrawerHeader(
-                  accountName: Text(user?.displayName ?? "Not Signed In"),
-                  accountEmail: Text(
-                    user?.email ?? "Sign in to sync with Drive",
+                  accountName: Text(
+                    repo.driveService.currentUser?.displayName ??
+                        "Not Signed In",
                   ),
-                  currentAccountPicture: user?.photoUrl != null
+                  accountEmail: Text(
+                    repo.driveService.currentUser?.email ??
+                        "Sign in to sync with Drive",
+                  ),
+                  currentAccountPicture:
+                      repo.driveService.currentUser?.photoUrl != null
                       ? CircleAvatar(
                           backgroundColor: Colors.black,
-                          backgroundImage: NetworkImage(user!.photoUrl!),
+                          backgroundImage: NetworkImage(
+                            repo.driveService.currentUser!.photoUrl!,
+                          ),
                         )
                       : const CircleAvatar(child: Icon(Icons.person)),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900], 
-                  ),
+                  decoration: BoxDecoration(color: Colors.grey[900]),
                 ),
                 ListTile(
                   leading: const Icon(Icons.manage_accounts),
@@ -134,60 +146,57 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                   },
                 ),
               ],
-            );
-          },
-        ),
-      ),
-      drawerEnableOpenDragGesture: true,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addItem(context),
-        icon: const Icon(Icons.add),
-        label: const Text("Add Gear"),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Consumer<ClothingRepository>(
-            builder: (context, repo, child) {
-              if (repo.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (repo.items.isEmpty) {
-                return const Center(
-                  child: Text("No items yet. Add some gear!"),
-                );
-              }
-              final filteredItems = repo.items.where((item) {
-                return _filterCriteria.matches(item);
-              }).toList();
-
-              if (filteredItems.isEmpty) {
-                return const Center(
-                  child: Text("No items match your filter."),
-                );
-              }
-              return GearGrid(
-                items: filteredItems,
-                onItemTap: (item) async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GearDetailScreen(item: item),
-                    ),
-                  );
-
-                  if (result == true) {
-                    if (context.mounted) {
-                      await repo.removeItem(item);
-                    }
-                  } else if (result is ClothingItem) {}
-                },
-              );
-            },
+            ),
           ),
-        ),
-      ),
+          drawerEnableOpenDragGesture: true,
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _addItem(context),
+            icon: const Icon(Icons.add),
+            label: const Text("Add Gear"),
+          ),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Builder(
+                builder: (context) {
+                  if (repo.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (repo.items.isEmpty) {
+                    return const Center(
+                      child: Text("No items yet. Add some gear!"),
+                    );
+                  }
+
+                  if (filteredItems.isEmpty) {
+                    return const Center(
+                      child: Text("No items match your filter."),
+                    );
+                  }
+                  return GearGrid(
+                    items: filteredItems,
+                    onItemTap: (item) async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GearDetailScreen(item: item),
+                        ),
+                      );
+
+                      if (result == true) {
+                        if (context.mounted) {
+                          await repo.removeItem(item);
+                        }
+                      } else if (result is ClothingItem) {}
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
