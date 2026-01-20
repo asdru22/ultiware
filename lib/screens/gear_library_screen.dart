@@ -12,6 +12,7 @@ import '../widgets/filter_dialog.dart';
 import 'export_data_screen.dart';
 import 'trade_input_screen.dart';
 import 'trade_history_screen.dart';
+import 'statistics_screen.dart';
 
 class GearLibraryScreen extends StatefulWidget {
   const GearLibraryScreen({super.key});
@@ -238,6 +239,19 @@ class _GearLibraryScreenState extends State<GearLibraryScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const TradeHistoryScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bar_chart),
+                  title: const Text('Statistics'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StatisticsScreen(),
                       ),
                     );
                   },
